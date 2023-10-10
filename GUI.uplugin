@@ -1,0 +1,25 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "2.0",
+	"FriendlyName": "OPUS UE5",
+	"Description": "This a graphical user interface for the OPUS API",
+	"Category": "Other",
+	"CreatedBy": "Capoom",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": false,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "GUI",
+			"Type": "Editor",
+			"LoadingPhase": "Default"
+		}
+	],
+	"EngineAssociation": "5.0"
+}
