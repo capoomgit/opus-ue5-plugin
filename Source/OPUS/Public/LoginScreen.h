@@ -3,7 +3,7 @@
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Text/STextBlock.h"
 
-class LoginScreen 
+class LoginScreen
 {
 public:
 	TSharedRef<SDockTab> ShowLoginScreen();

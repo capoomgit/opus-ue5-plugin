@@ -24,6 +24,31 @@ TSharedRef<SDockTab> LoginScreen::ShowLoginScreen() {
 	);
 
     return
+        
+        SNew(SDockTab)
+        .TabRole(ETabRole::NomadTab)
+        [
+            // Put your tab content here!
+            SNew(SOverlay)
+                + SOverlay::Slot()
+                .HAlign(HAlign_Center)
+                .VAlign(VAlign_Center)
+                [
+                    SNew(STextBlock)
+                        .Text(loginText)
+                ]
+
+                + SOverlay::Slot()
+                .VAlign(VAlign_Center)
+                .HAlign(HAlign_Center)
+                .Padding(-35, -150, 0, 0)  // Move the image up
+                [
+                   SNew(SImage)
+                        .Image(FOPUSStyle::Get().GetBrush("OPUS.APILogo"))
+                ]
+        ];
+        
+    /*
         SNew(SDockTab)
         .TabRole(ETabRole::NomadTab)
         [
@@ -33,10 +58,10 @@ TSharedRef<SDockTab> LoginScreen::ShowLoginScreen() {
                 .VAlign(VAlign_Center)
                 .HAlign(HAlign_Center)
                 .Padding(-35, -150, 0, 0)  // Move the image up
-                [
-                    SNew(SImage)
-                        .Image(FOPUSStyle::Get().GetBrush("OPUS.APILogo"))
-                ]
+                //[
+                //   SNew(SImage)
+                //        .Image(FOPUSStyle::Get().GetBrush("OPUS.APILogo"))
+                //]
 
                 + SOverlay::Slot()
                 .VAlign(VAlign_Center)
@@ -96,10 +121,11 @@ TSharedRef<SDockTab> LoginScreen::ShowLoginScreen() {
                         ]
                 ]
         ];
+        */
         
 }
-
-FReply LoginScreen::LoginButtonClicked() {}
+;
+FReply LoginScreen::LoginButtonClicked() { return FReply::Handled(); }
 
 void LoginScreen::OnTextCommittedInKeyField(const FText& Text, ETextCommit::Type CommitMethod) {
     if (CommitMethod == ETextCommit::OnEnter)

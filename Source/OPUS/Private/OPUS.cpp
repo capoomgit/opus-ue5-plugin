@@ -59,6 +59,26 @@ TSharedRef<SDockTab> FOPUSModule::OnSpawnPluginTab(const FSpawnTabArgs& SpawnTab
 	LoginScreen loginScreen;
 
 	return loginScreen.ShowLoginScreen();
+
+	/*FText WidgetText = FText::Format(
+		LOCTEXT("WindowWidgetText", "Add code to {0} in {1} to override this window's contents"),
+		FText::FromString(TEXT("FOPUSModule::OnSpawnPluginTab")),
+		FText::FromString(TEXT("OPUS.cpp"))
+		);
+
+
+	return SNew(SDockTab)
+		.TabRole(ETabRole::NomadTab)
+		[
+			// Put your tab content here!
+			SNew(SBox)
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+			[
+				SNew(STextBlock)
+				.Text(WidgetText)
+			]
+		];*/
 }
 
 void FOPUSModule::PluginButtonClicked()
