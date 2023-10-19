@@ -4,7 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
-#include "LoginScreen.h"
+#include "Widgets/SCompoundWidget.h"
+#include "SLoginScreen.h"
 
 class FToolBarBuilder;
 class FMenuBuilder;
@@ -17,15 +18,17 @@ public:
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 	
-	/** This function will be bound to Command (by default it will bring up plugin window) */
+	/** This function will be bound to Command. */
 	void PluginButtonClicked();
 	
 private:
 
 	void RegisterMenus();
 
-	TSharedRef<class SDockTab> OnSpawnPluginTab(const class FSpawnTabArgs& SpawnTabArgs);
 
 private:
 	TSharedPtr<class FUICommandList> PluginCommands;
+	TSharedPtr<class SLoginScreen> LoginScreen;
+	void ShowLoginWidget();
+
 };

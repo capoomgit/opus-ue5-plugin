@@ -43,6 +43,7 @@ public class OPUS : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
+				"Http"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

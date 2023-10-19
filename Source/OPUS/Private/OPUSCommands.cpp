@@ -6,7 +6,7 @@
 
 void FOPUSCommands::RegisterCommands()
 {
-	UI_COMMAND(OpenPluginWindow, "OPUS", "Bring up OPUS window", EUserInterfaceActionType::Button, FInputChord());
+	UI_COMMAND(PluginAction, "OPUS", "Execute OPUS action", EUserInterfaceActionType::Button, FInputChord());
 }
 
 #undef LOCTEXT_NAMESPACE

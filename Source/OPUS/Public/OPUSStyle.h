@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "Styling/SlateStyle.h"
 
-/**  */
 class FOPUSStyle
 {
 public:

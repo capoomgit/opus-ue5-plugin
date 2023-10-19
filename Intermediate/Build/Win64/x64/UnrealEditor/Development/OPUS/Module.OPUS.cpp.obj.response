@@ -1,6 +1,6 @@
-"C:\Users\capoom\Documents\Unreal Projects\OPUSv1\Plugins\OPUS\Intermediate\Build\Win64\x64\UnrealEditor\Development\OPUS\Module.OPUS.cpp"
+"C:\Users\capoom\Documents\Unreal Projects\OPUSTest1\Plugins\OPUS\Intermediate\Build\Win64\x64\UnrealEditor\Development\OPUS\Module.OPUS.cpp"
 /I .
-/I "C:\Users\capoom\Documents\Unreal Projects\OPUSv1\Plugins\OPUS\Source\OPUS\Private"
+/I "C:\Users\capoom\Documents\Unreal Projects\OPUSTest1\Plugins\OPUS\Source\OPUS\Private"
 /I Runtime\Projects\Public
 /I Runtime
 /I Runtime\TraceLog\Public
@@ -273,8 +273,8 @@
 /I ..\Intermediate\Build\Win64\UnrealEditor\Inc\AIModule\UHT
 /I Runtime\AIModule\Public
 /I Runtime\AIModule\Classes
-/I "C:\Users\capoom\Documents\Unreal Projects\OPUSv1\Plugins\OPUS\Source"
-/I "C:\Users\capoom\Documents\Unreal Projects\OPUSv1\Plugins\OPUS\Source\OPUS\Public"
+/I "C:\Users\capoom\Documents\Unreal Projects\OPUSTest1\Plugins\OPUS\Source"
+/I "C:\Users\capoom\Documents\Unreal Projects\OPUSTest1\Plugins\OPUS\Source\OPUS\Public"
 /external:W0
 /external:I ThirdParty\mimalloc\include
 /external:I ThirdParty\LibTiff\Source\Win64
@@ -284,12 +284,12 @@
 /external:I "C:\Program Files (x86)\Windows Kits\10\include\10.0.22621.0\shared"
 /external:I "C:\Program Files (x86)\Windows Kits\10\include\10.0.22621.0\um"
 /external:I "C:\Program Files (x86)\Windows Kits\10\include\10.0.22621.0\winrt"
-/FI"C:\Users\capoom\Documents\Unreal Projects\OPUSv1\Intermediate\Build\Win64\x64\OPUSv1Editor\Development\UnrealEd\SharedPCH.UnrealEd.ShadowErrors.InclOrderUnreal5_1.h"
-/FI"C:\Users\capoom\Documents\Unreal Projects\OPUSv1\Plugins\OPUS\Intermediate\Build\Win64\x64\UnrealEditor\Development\OPUS\Definitions.OPUS.h"
-/Yu"C:\Users\capoom\Documents\Unreal Projects\OPUSv1\Intermediate\Build\Win64\x64\OPUSv1Editor\Development\UnrealEd\SharedPCH.UnrealEd.ShadowErrors.InclOrderUnreal5_1.h"
-/Fp"C:\Users\capoom\Documents\Unreal Projects\OPUSv1\Intermediate\Build\Win64\x64\OPUSv1Editor\Development\UnrealEd\SharedPCH.UnrealEd.ShadowErrors.InclOrderUnreal5_1.h.pch"
-/Fo"C:\Users\capoom\Documents\Unreal Projects\OPUSv1\Plugins\OPUS\Intermediate\Build\Win64\x64\UnrealEditor\Development\OPUS\Module.OPUS.cpp.obj"
-/sourceDependencies "C:\Users\capoom\Documents\Unreal Projects\OPUSv1\Plugins\OPUS\Intermediate\Build\Win64\x64\UnrealEditor\Development\OPUS\Module.OPUS.cpp.dep.json"
+/FI"C:\Users\capoom\Documents\Unreal Projects\OPUSTest1\Intermediate\Build\Win64\x64\OPUSTest1Editor\Development\UnrealEd\SharedPCH.UnrealEd.ShadowErrors.InclOrderUnreal5_1.h"
+/FI"C:\Users\capoom\Documents\Unreal Projects\OPUSTest1\Plugins\OPUS\Intermediate\Build\Win64\x64\UnrealEditor\Development\OPUS\Definitions.OPUS.h"
+/Yu"C:\Users\capoom\Documents\Unreal Projects\OPUSTest1\Intermediate\Build\Win64\x64\OPUSTest1Editor\Development\UnrealEd\SharedPCH.UnrealEd.ShadowErrors.InclOrderUnreal5_1.h"
+/Fp"C:\Users\capoom\Documents\Unreal Projects\OPUSTest1\Intermediate\Build\Win64\x64\OPUSTest1Editor\Development\UnrealEd\SharedPCH.UnrealEd.ShadowErrors.InclOrderUnreal5_1.h.pch"
+/Fo"C:\Users\capoom\Documents\Unreal Projects\OPUSTest1\Plugins\OPUS\Intermediate\Build\Win64\x64\UnrealEditor\Development\OPUS\Module.OPUS.cpp.obj"
+/sourceDependencies "C:\Users\capoom\Documents\Unreal Projects\OPUSTest1\Plugins\OPUS\Intermediate\Build\Win64\x64\UnrealEditor\Development\OPUS\Module.OPUS.cpp.dep.json"
 /Zc:inline
 /nologo
 /Oi

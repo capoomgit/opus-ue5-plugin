@@ -1,8 +1,9 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "OPUSStyle.h"
-#include "Styling/SlateStyleRegistry.h"
+#include "OPUS.h"
 #include "Framework/Application/SlateApplication.h"
+#include "Styling/SlateStyleRegistry.h"
 #include "Slate/SlateGameResources.h"
 #include "Interfaces/IPluginManager.h"
 #include "Styling/SlateStyleMacros.h"
@@ -33,6 +34,7 @@ FName FOPUSStyle::GetStyleSetName()
 	return StyleSetName;
 }
 
+
 const FVector2D Icon16x16(16.0f, 16.0f);
 const FVector2D Icon20x20(20.0f, 20.0f);
 
@@ -41,7 +43,7 @@ TSharedRef< FSlateStyleSet > FOPUSStyle::Create()
 	TSharedRef< FSlateStyleSet > Style = MakeShareable(new FSlateStyleSet("OPUSStyle"));
 	Style->SetContentRoot(IPluginManager::Get().FindPlugin("OPUS")->GetBaseDir() / TEXT("Resources"));
 
-	Style->Set("OPUS.OpenPluginWindow", new IMAGE_BRUSH_SVG(TEXT("PlaceholderButtonIcon"), Icon20x20));
+	Style->Set("OPUS.PluginAction", new IMAGE_BRUSH_SVG(TEXT("PlaceholderButtonIcon"), Icon20x20));
 
 	Style->Set("OPUS.APILogo", new IMAGE_BRUSH_SVG(TEXT("opusapi_horizontal_white"), FVector2D(381, 100)));
 

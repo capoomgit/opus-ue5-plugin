@@ -6,7 +6,7 @@
 /NAME:"UnrealEditor-OPUS.dll"
 /IGNORE:4221
 /NODEFAULTLIB
-"C:\Users\capoom\Documents\Unreal Projects\OPUSv1\Intermediate\Build\Win64\x64\OPUSv1Editor\Development\UnrealEd\SharedPCH.UnrealEd.ShadowErrors.InclOrderUnreal5_1.h.obj"
-"C:\Users\capoom\Documents\Unreal Projects\OPUSv1\Plugins\OPUS\Intermediate\Build\Win64\x64\UnrealEditor\Development\OPUS\Module.OPUS.cpp.obj"
-"C:\Users\capoom\Documents\Unreal Projects\OPUSv1\Plugins\OPUS\Intermediate\Build\Win64\x64\UnrealEditor\Development\OPUS\Default.rc2.res"
-/OUT:"C:\Users\capoom\Documents\Unreal Projects\OPUSv1\Plugins\OPUS\Intermediate\Build\Win64\x64\UnrealEditor\Development\OPUS\UnrealEditor-OPUS.lib"
+"C:\Users\capoom\Documents\Unreal Projects\OPUSTest1\Intermediate\Build\Win64\x64\OPUSTest1Editor\Development\UnrealEd\SharedPCH.UnrealEd.ShadowErrors.InclOrderUnreal5_1.h.obj"
+"C:\Users\capoom\Documents\Unreal Projects\OPUSTest1\Plugins\OPUS\Intermediate\Build\Win64\x64\UnrealEditor\Development\OPUS\Module.OPUS.cpp.obj"
+"C:\Users\capoom\Documents\Unreal Projects\OPUSTest1\Plugins\OPUS\Intermediate\Build\Win64\x64\UnrealEditor\Development\OPUS\Default.rc2.res"
+/OUT:"C:\Users\capoom\Documents\Unreal Projects\OPUSTest1\Plugins\OPUS\Intermediate\Build\Win64\x64\UnrealEditor\Development\OPUS\UnrealEditor-OPUS.lib"
