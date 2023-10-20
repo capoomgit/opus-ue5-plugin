@@ -1,0 +1,13 @@
+{
+    "Version": "1.2",
+    "Data": {
+        "Source": "c:\\users\\capoom\\documents\\unreal projects\\opustest1\\plugins\\opus\\source\\opus\\private\\loginevent.cpp",
+        "ProvidedModule": "",
+        "Includes": [
+            "c:\\users\\capoom\\documents\\unreal projects\\opustest1\\plugins\\opus\\intermediate\\build\\win64\\x64\\unrealeditor\\development\\opus\\definitions.h",
+            "c:\\users\\capoom\\documents\\unreal projects\\opustest1\\plugins\\opus\\source\\opus\\public\\loginevent.h"
+        ],
+        "ImportedModules": [],
+        "ImportedHeaderUnits": []
+    }
+}

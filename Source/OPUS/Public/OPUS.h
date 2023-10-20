@@ -3,12 +3,23 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "SLoginScreen.h"
+#include "SCreationScreen.h"
+#include "SQueueScreen.h"
+
+// Libraries
 #include "Modules/ModuleManager.h"
 #include "Widgets/SCompoundWidget.h"
-#include "SLoginScreen.h"
 
 class FToolBarBuilder;
 class FMenuBuilder;
+
+enum OPUSScreenState 
+{
+	LOGIN = 0,
+	CREATION = 1,
+	QUEUE = 2
+};
 
 class FOPUSModule : public IModuleInterface
 {
@@ -20,15 +31,32 @@ public:
 	
 	/** This function will be bound to Command. */
 	void PluginButtonClicked();
-	
+
 private:
 
 	void RegisterMenus();
+	void RegisterScreens();
+	void CreateWindow();
+	void ShowLoginScreen();
+	void ShowCreationScreen();
+	void ShowQueueScreen();
+	bool CheckSavedAPIKey();
 
+
+	//Events
+	void OnLoginSuccessful(FText apiKey);
 
 private:
 	TSharedPtr<class FUICommandList> PluginCommands;
-	TSharedPtr<class SLoginScreen> LoginScreen;
-	void ShowLoginWidget();
 
+	// Screens
+	TSharedPtr<SWindow> MainWindow;
+	TSharedPtr<class SLoginScreen> LoginScreen;
+	TSharedPtr<class SCreationScreen> CreationScreen;
+	TSharedPtr<class SQueueScreen> QueueScreen;
+
+	FString CurrentAPIKey;
+	bool IsLoggedIn = false;
+
+	
 };

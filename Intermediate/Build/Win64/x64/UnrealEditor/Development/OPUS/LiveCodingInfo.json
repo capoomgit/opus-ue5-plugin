@@ -6,7 +6,9 @@
 			"OPUS.cpp.obj",
 			"OPUSCommands.cpp.obj",
 			"OPUSStyle.cpp.obj",
-			"SLoginScreen.cpp.obj"
+			"SCreationScreen.cpp.obj",
+			"SLoginScreen.cpp.obj",
+			"SQueueScreen.cpp.obj"
 		]
 	}
 }

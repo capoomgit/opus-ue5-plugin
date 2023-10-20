@@ -26,6 +26,8 @@ public class OPUS : ModuleRules
 			new string[]
 			{
 				"Core",
+				"HTTP",
+				"Json"
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);
@@ -43,7 +45,7 @@ public class OPUS : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
-				"Http"
+				"HTTP"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

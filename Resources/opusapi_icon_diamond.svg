@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_2" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 266.82 266.82">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: url(#linear-gradient);
+      }
+
+      .cls-2 {
+        fill: url(#New_Gradient_Swatch_5);
+      }
+
+      .cls-3 {
+        fill: url(#New_Gradient_Swatch_4);
+      }
+
+      .cls-4 {
+        fill: url(#linear-gradient-3);
+      }
+
+      .cls-5 {
+        fill: url(#linear-gradient-2);
+      }
+    </style>
+    <linearGradient id="New_Gradient_Swatch_5" data-name="New Gradient Swatch 5" x1="-26.32" y1="-4081.14" x2="162.35" y2="-3892.47" gradientTransform="translate(65.4 4120.22)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f5af19"/>
+      <stop offset=".13" stop-color="#f4a718"/>
+      <stop offset=".33" stop-color="#f49317"/>
+      <stop offset=".58" stop-color="#f37215"/>
+      <stop offset=".85" stop-color="#f14412"/>
+      <stop offset="1" stop-color="#f12711"/>
+    </linearGradient>
+    <linearGradient id="New_Gradient_Swatch_4" data-name="New Gradient Swatch 4" x1="-1798.89" y1="-6033.43" x2="-1749.74" y2="-6033.43" gradientTransform="translate(-5902.63 1864.22) rotate(90)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#008a49"/>
+      <stop offset=".13" stop-color="#00984b"/>
+      <stop offset=".72" stop-color="#00d657"/>
+      <stop offset="1" stop-color="#00ee5c"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient" x1="333.15" y1="-3606.64" x2="284" y2="-3557.48" gradientTransform="translate(2822.63 -2179.79) rotate(-135)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f5af19"/>
+      <stop offset="1" stop-color="#f12711"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient-2" x1="-88.85" y1="-3953.52" x2="-88.85" y2="-3904.36" gradientTransform="translate(4059.81 91) rotate(-90)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f12711"/>
+      <stop offset="1" stop-color="#f5af19"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient-3" x1="-590.38" y1="-2908.6" x2="-541.22" y2="-2957.75" gradientTransform="translate(-1483.69 2609.15) rotate(45)" xlink:href="#linear-gradient-2"/>
+  </defs>
+  <g id="Layer_1-2" data-name="Layer 1">
+    <g id="opusapi_icon_diamond">
+      <rect class="cls-2" x="39.07" y="39.07" width="188.67" height="188.67" transform="translate(-55.26 133.41) rotate(-45)"/>
+      <g>
+        <polygon class="cls-3" points="106.22 65.33 155.38 65.33 106.22 114.48 106.22 65.33"/>
+        <polygon class="cls-1" points="36.78 134.91 106.3 65.4 106.3 204.43 36.78 134.91"/>
+        <g>
+          <polygon class="cls-5" points="155.45 204.43 106.3 204.43 155.45 155.28 155.45 204.43"/>
+          <polygon class="cls-4" points="225.05 135 155.54 204.52 155.54 65.48 225.05 135"/>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

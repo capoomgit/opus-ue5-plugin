@@ -47,6 +47,7 @@
 "..\Intermediate\Build\Win64\x64\UnrealEditor\Development\SlateCore\UnrealEditor-SlateCore.lib"
 "..\Intermediate\Build\Win64\x64\UnrealEditor\Development\HTTP\UnrealEditor-HTTP.lib"
 "..\Intermediate\Build\Win64\x64\UnrealEditor\Development\Core\UnrealEditor-Core.lib"
+"..\Intermediate\Build\Win64\x64\UnrealEditor\Development\Json\UnrealEditor-Json.lib"
 "delayimp.lib"
 "wininet.lib"
 "rpcrt4.lib"

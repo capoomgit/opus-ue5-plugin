@@ -43,9 +43,11 @@ TSharedRef< FSlateStyleSet > FOPUSStyle::Create()
 	TSharedRef< FSlateStyleSet > Style = MakeShareable(new FSlateStyleSet("OPUSStyle"));
 	Style->SetContentRoot(IPluginManager::Get().FindPlugin("OPUS")->GetBaseDir() / TEXT("Resources"));
 
-	Style->Set("OPUS.PluginAction", new IMAGE_BRUSH_SVG(TEXT("PlaceholderButtonIcon"), Icon20x20));
+	Style->Set("OPUS.PluginAction", new IMAGE_BRUSH_SVG(TEXT("opus_icon_diamond"), Icon20x20));
 
 	Style->Set("OPUS.APILogo", new IMAGE_BRUSH_SVG(TEXT("opusapi_horizontal_white"), FVector2D(381, 100)));
+
+	Style->Set("OPUS.SmallLogo", new IMAGE_BRUSH(TEXT("opus_icon"), FVector2D(112, 83)));
 
 	return Style;
 }

@@ -3,9 +3,15 @@
 #include "OPUS.h"
 #include "OPUSStyle.h"
 #include "OPUSCommands.h"
-#include "Misc/MessageDialog.h"
 #include "ToolMenus.h"
 #include "SlateOptMacros.h"
+#include "SLoginScreen.h"
+#include "SCreationScreen.h"
+#include "SQueueScreen.h"
+
+// Libraries
+#include "Misc/FileHelper.h"
+#include "Misc/MessageDialog.h"
 
 static const FName OPUSTabName("OPUS");
 
@@ -28,6 +34,7 @@ void FOPUSModule::StartupModule()
 		FCanExecuteAction());
 
 	UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FOPUSModule::RegisterMenus));
+
 }
 
 void FOPUSModule::ShutdownModule()
@@ -46,14 +53,9 @@ void FOPUSModule::ShutdownModule()
 
 void FOPUSModule::PluginButtonClicked()
 {
-	// Put your "OnButtonClicked" stuff here
-	FText DialogText = FText::Format(
-							LOCTEXT("PluginButtonDialogText", "Add code to {0} in {1} to override this button's actions"),
-							FText::FromString(TEXT("FOPUSModule::PluginButtonClicked()")),
-							FText::FromString(TEXT("OPUS.cpp"))
-					   );
+	RegisterScreens();
 
-	ShowLoginWidget();
+	CreateWindow();
 	//FMessageDialog::Open(EAppMsgType::Ok, DialogText);
 }
 
@@ -82,17 +84,77 @@ void FOPUSModule::RegisterMenus()
 	}
 }
 
-void FOPUSModule::ShowLoginWidget()
+void FOPUSModule::RegisterScreens()
 {
 	SAssignNew(LoginScreen, SLoginScreen);
+	SAssignNew(CreationScreen, SCreationScreen)
+		.APIKey(FText::FromString(CurrentAPIKey));
+	SAssignNew(QueueScreen, SQueueScreen)
+		.APIKey(FText::FromString(CurrentAPIKey));
 
-	TSharedRef<SWindow> Window = SNew(SWindow)
+	LoginScreen->OnLoginSuccessfulDelegate.AddRaw(this, &FOPUSModule::OnLoginSuccessful);
+}
+
+void FOPUSModule::CreateWindow()
+{
+	SAssignNew(MainWindow, SWindow)
 		.Title(LOCTEXT("WindowTitle", "OPUS API"))
 		.ClientSize(FVector2D(800, 650))
 		.IsInitiallyMaximized(false);
+	
+	FSlateApplication::Get().AddWindow(MainWindow.ToSharedRef());
 
-	Window->SetContent(LoginScreen.ToSharedRef());
-	FSlateApplication::Get().AddWindow(Window);
+	// if there is no API key, then show login page
+	if (!CheckSavedAPIKey())
+	{
+		ShowLoginScreen();
+	}
+
+	else
+	{
+		ShowCreationScreen();
+	}
+}
+
+void FOPUSModule::ShowLoginScreen()
+{
+	MainWindow->SetContent(LoginScreen.ToSharedRef());
+}
+
+void FOPUSModule::ShowCreationScreen() 
+{
+	MainWindow->SetContent(CreationScreen.ToSharedRef());
+}
+
+void FOPUSModule::ShowQueueScreen() 
+{
+	MainWindow->SetContent(QueueScreen.ToSharedRef());
+}
+
+void FOPUSModule::OnLoginSuccessful(FText apiKey) 
+{
+	CurrentAPIKey = apiKey.ToString();
+	ShowCreationScreen();
+}
+
+bool FOPUSModule::CheckSavedAPIKey()
+{
+	// Find save file 
+	FString SaveFilePath = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("APIKey.txt"));
+
+	// check save file file != null
+	if (FPaths::FileExists(SaveFilePath) && CurrentAPIKey.IsEmpty())
+	{
+		// string extracted from txt file
+		// !! TODO  !! encrypt this key
+		FFileHelper::LoadFileToString(CurrentAPIKey, *SaveFilePath);
+
+		// If the file exists, consider the user as logged in and go directly to main GUI
+		// TODO log in as user
+		IsLoggedIn = true;
+	}
+
+	return !CurrentAPIKey.IsEmpty();
 }
 
 #undef LOCTEXT_NAMESPACE
