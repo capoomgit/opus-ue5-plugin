@@ -6,7 +6,7 @@
 #include "Widgets/SCompoundWidget.h"
 #include "EditorNotificationHelper.h"
 
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnLoginSuccessful, FText);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnLoginSuccessful, FString);
 
 class OPUS_API SLoginScreen : public SCompoundWidget
 {
@@ -17,8 +17,7 @@ public:
 
 	/** Constructs this widget with InArgs */
 	void Construct(const FArguments& InArgs);
-	bool GetIsLoggedIn();
-	void SetIsLoggedIn(bool loggedIn);
+	void RebuildWidget();
 
 	// Delegates
 	FOnLoginSuccessful OnLoginSuccessfulDelegate;
@@ -26,8 +25,13 @@ public:
 private:
 	void OnTextCommittedInKeyField(const FText& Text, ETextCommit::Type CommitMethod);
 	FReply LoginButtonClicked();
+	void LogIn(FString key);
+	void SaveKeyToFile(FString key);
+	void RemoveKeyFile();
+	bool CheckStoredAPIKey();
+
+private:
 	TSharedPtr<SEditableText> KeyField;
-	bool IsLoggedIn = false;
 	FString StoredAPIKey;
 	EditorNotificationHelper NotificationHelper;
 

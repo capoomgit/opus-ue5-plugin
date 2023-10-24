@@ -21,7 +21,7 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SCreationScreen::Construct(const FArguments& InArgs)
 {
 	APIKey = InArgs._APIKey;
-    CurrentItem = MakeShared<FString>(TEXT("Loading..."));
+    CurrentModel = MakeShared<FString>(TEXT("Loading..."));
     FilteredSuggestions.Empty();
     ParameterSuggestions.Empty();
 
@@ -33,6 +33,7 @@ void SCreationScreen::Construct(const FArguments& InArgs)
                 + SOverlay::Slot()
                 .VAlign(VAlign_Top)
                 .HAlign(HAlign_Right)
+                .Padding(0, 0, 10, 0)
                 [
                     SNew(SButton)
                         .Text(LOCTEXT("LogoutButton", "Logout 🚪"))
@@ -48,11 +49,12 @@ void SCreationScreen::Construct(const FArguments& InArgs)
                         .Text(LOCTEXT("QueueButton", "Queue ↡"))
                         .OnClicked(this, &SCreationScreen::QueueButtonClicked)
                 ]
-
+                
                 + SOverlay::Slot()
                 .VAlign(VAlign_Fill)
                 .HAlign(HAlign_Fill)
                 [
+                    
                     SNew(SVerticalBox)
 
                         + SVerticalBox::Slot()
@@ -60,7 +62,7 @@ void SCreationScreen::Construct(const FArguments& InArgs)
                         .Padding(30, 0, 200, 0)
                         [
                             SNew(STextBlock)
-                                .Text(LOCTEXT("Select Component", "Please select a component from the menu."))
+                                .Text(LOCTEXT("Select Structure", "Please select a model to generate."))
                         ]
 
                         // Component selection combo box
@@ -77,11 +79,11 @@ void SCreationScreen::Construct(const FArguments& InArgs)
                                     SNew(SBox)
                                         .WidthOverride(120)
                                         [
-                                            SAssignNew(ComboBoxWidget, SComboBox<TSharedPtr<FString>>)
-                                                .OptionsSource(&ComboBoxOptions)
+                                            SAssignNew(ModelComboBox, SComboBox<TSharedPtr<FString>>)
+                                                .OptionsSource(&ModelOptions)
                                                 .OnGenerateWidget(this, &SCreationScreen::GenerateComboBoxItem)
                                                 .OnSelectionChanged(this, &SCreationScreen::ComboBoxSelectionChanged)
-                                                .InitiallySelectedItem(CurrentItem)
+                                                .InitiallySelectedItem(CurrentModel)
                                                 .ContentPadding(FMargin(2.0f))
                                                 [
                                                     SNew(STextBlock)
@@ -114,24 +116,23 @@ void SCreationScreen::Construct(const FArguments& InArgs)
 
                                 + SHorizontalBox::Slot()
                                 .AutoWidth()
-                                .Padding(0, 0, 100, 0)
+                                .Padding(0, 0, 10, 0)
                                 [
                                     SNew(SBox)
-                                        .WidthOverride(300)
-                                        .HeightOverride(77)
                                         [
                                             SNew(SImage)
                                                 .Image(FOPUSStyle::Get().GetBrush("OPUS.SmallLogo"))
                                         ]
-                                ]
+                                ]    
                         ]
+                        
 
                         + SVerticalBox::Slot()
                         .AutoHeight()
                         .Padding(30, 20, 0, 0)
                         [
                             SNew(STextBlock)
-                                .Text(LOCTEXT("NewSearchLabel", "Search for Tags"))
+                                .Text(LOCTEXT("Select preset", "Select a model preset"))
                         ]
 
                         + SVerticalBox::Slot()
@@ -378,26 +379,28 @@ void SCreationScreen::Construct(const FArguments& InArgs)
 
 FReply SCreationScreen::LogoutButtonClicked()
 {
-    // TODO send logout event
-    // Set logged in flag to false
-    //bIsLoggedIn = false;
-
 
     // Delete the APIKey.txt file
-    FString SaveFilePath = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("APIKey.txt"));
+    FString SaveFilePath = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("OPUSAPIKey.txt"));
     if (FPaths::FileExists(SaveFilePath))
     {
         IFileManager::Get().Delete(*SaveFilePath);
     }
 
-    // Rebuild the widget to go back to the login screen
-    //this->RebuildWidget();
-
+    APIKey = "";
+    OnLogoutDelegate.Broadcast();
     return FReply::Handled();
 }
 
 // TODO Make create button send request and give positive feedback.
 FReply SCreationScreen::CreateButtonClicked()
+{
+    SendAPIRequest_Create();  
+    OnQueueScreenEnabledDelegate.Broadcast();
+    return FReply::Handled();
+}
+
+FReply SCreationScreen::ShowWarningWindow(FString warningMessage) 
 {
     TSharedPtr<SWindow> WarningWindowPtr; // Declare a shared pointer
     TSharedRef<SWindow> WarningWindow = SNew(SWindow)
@@ -419,7 +422,7 @@ FReply SCreationScreen::CreateButtonClicked()
         [
             SNew(STextBlock)
                 //TODO: this text needs to be changed in order to be clear
-                .Text(LOCTEXT("WarningText", "If you want to customize your component, It will not be possible after creating the component.\nYou can search and add features from below.\nThis warning will not be shown again.\nDo you want to proceed?"))
+                .Text(FText::FromString(warningMessage))
                 .Justification(ETextJustify::Center)
         ]
 
@@ -435,34 +438,17 @@ FReply SCreationScreen::CreateButtonClicked()
                 [
                     //SUGGESTION: this button may direct the user to QUEUE screen
                     SNew(SButton)
-                        .Text(LOCTEXT("YesButton", "Yes"))
-                        .OnClicked_Lambda([this, WarningWindowPtr]() {
-                        if (WarningWindowPtr.IsValid())
+                        .Text(LOCTEXT("OKButton", "OK"))
+                        .OnClicked_Lambda([this, WarningWindowPtr]() 
                         {
-                            WarningWindowPtr->RequestDestroyWindow();
-                        }
-
-                        SendAPIRequest_Create();  // Your existing API call logic
-
-                        return FReply::Handled();
-                            })
-                ]
-
-                + SHorizontalBox::Slot()
-                .AutoWidth()
-                [
-                    SNew(SButton)
-                        .Text(LOCTEXT("NoButton", "No"))
-                        .OnClicked_Lambda([WarningWindowPtr]() {
-                        if (WarningWindowPtr.IsValid())
-                        {
-                            WarningWindowPtr->RequestDestroyWindow();
-                        }
-                        return FReply::Handled();
-                            })
+                            if (WarningWindowPtr.IsValid())
+                            {
+                                WarningWindowPtr->RequestDestroyWindow();
+                            }
+                            return FReply::Handled();
+                        })
                 ]
         ]);
-
     return FReply::Handled();
 }
 
@@ -583,10 +569,9 @@ FReply SCreationScreen::ResetFeaturesButtonClicked()
 
 FReply SCreationScreen::QueueButtonClicked()
 {
-    //bIsQueueClicked = !bIsQueueClicked;  // Toggle the state
+    // Enable screen by broadcasting delegate
+    OnQueueScreenEnabledDelegate.Broadcast();
 
-    // TODO send to queue screen
-    //RebuildWidget();  // Rebuild the widget to reflect the new state
     return FReply::Handled();
 }
 
@@ -803,11 +788,13 @@ void SCreationScreen::ResetTable()
 // --- HELPER METHODS
 // ------------------------------
 
+void SCreationScreen::SetAPIKey(FString apiKey) { APIKey = apiKey; }
+
 FText SCreationScreen::GetCurrentItem() const
 {
-    if (CurrentItem.IsValid())
+    if (CurrentModel.IsValid())
     {
-        return FText::FromString(*CurrentItem);
+        return FText::FromString(*CurrentModel);
     }
     return FText::GetEmpty();
 }
@@ -828,7 +815,7 @@ void SCreationScreen::ComboBoxSelectionChanged(TSharedPtr<FString> NewItem, ESel
 {
     if (NewItem.IsValid())
     {
-        CurrentItem = NewItem;
+        CurrentModel = NewItem;
 
         // Clear the search boxes
         if (SearchBox.IsValid())
@@ -885,7 +872,7 @@ void SCreationScreen::SendAPIRequest_Create()
 
     for (const auto& structure : Structures)
     {
-        if (structure->Equals(*CurrentItem))
+        if (structure->Equals(*CurrentModel))
         {
             // Change the URL for structures
             Url = "https://opus5.p.rapidapi.com/create_opus_structure";
@@ -899,7 +886,7 @@ void SCreationScreen::SendAPIRequest_Create()
     HttpRequest->SetURL(Url);
     HttpRequest->SetVerb("POST");
     HttpRequest->SetHeader("Content-Type", "application/json");
-    HttpRequest->SetHeader("X-RapidAPI-Key", APIKey.ToString());
+    HttpRequest->SetHeader("X-RapidAPI-Key", APIKey);
     HttpRequest->SetHeader("X-RapidAPI-Host", "opus5.p.rapidapi.com");
     HttpRequest->SetContentAsString(JsonData);
     HttpRequest->OnProcessRequestComplete().BindRaw(this, &SCreationScreen::OnAPIRequestCreateCompleted);
@@ -921,7 +908,7 @@ FString SCreationScreen::ConstructJSONData()
 
     // Start constructing the JSON data
     FString JsonData = "{\r\n";
-    JsonData += "    \"name\": \"" + *CurrentItem + "\",\r\n";
+    JsonData += "    \"name\": \"" + *CurrentModel + "\",\r\n";
     JsonData += "    \"texture_resolution\": \"1024\",\r\n";
     JsonData += FString::Printf(TEXT("    \"extensions\": [\r\n        \"%s\"\r\n    ],\r\n"), IsFBXSelected ? TEXT("fbx") : TEXT("gltf"));
 
@@ -1011,7 +998,7 @@ void SCreationScreen::OnAPIRequestCreateCompleted(FHttpRequestPtr Request, FHttp
                 FString AbsolutePath = SaveDirectory + "/" + FileName;
 
                 FString CurrentDateTime = FDateTime::Now().ToString(TEXT("%Y-%m-%d-%H-%M-%S"));
-                FString TextToSave = *CurrentItem + TEXT(" ") + CurrentDateTime + TEXT(" ") + NewJobStatus + TEXT(" ") + *APIResponseID;
+                FString TextToSave = *CurrentModel + TEXT(" ") + CurrentDateTime + TEXT(" ") + NewJobStatus + TEXT(" ") + *APIResponseID;
 
                 // Append to file. This will create the file if it doesn't exist.
                 FFileHelper::SaveStringToFile(TextToSave + LINE_TERMINATOR, *AbsolutePath, FFileHelper::EEncodingOptions::AutoDetect, &IFileManager::Get(), EFileWrite::FILEWRITE_Append);
@@ -1049,11 +1036,11 @@ void SCreationScreen::OnAPIRequestCreateCompleted(FHttpRequestPtr Request, FHttp
 void SCreationScreen::SendThirdAPIRequest_AttributeName()
 {
     FString Url = "https://opus5.p.rapidapi.com/get_attributes_with_name";
-    FString Parameters = "?name=" + *CurrentItem;
+    FString Parameters = "?name=" + *CurrentModel;
     TSharedRef<IHttpRequest, ESPMode::ThreadSafe> HttpRequest = FHttpModule::Get().CreateRequest();
     HttpRequest->SetURL(Url + Parameters);
     HttpRequest->SetVerb("GET");
-    HttpRequest->SetHeader("X-RapidAPI-Key", APIKey.ToString());
+    HttpRequest->SetHeader("X-RapidAPI-Key", APIKey);
     HttpRequest->SetHeader("X-RapidAPI-Host", "opus5.p.rapidapi.com");
     HttpRequest->OnProcessRequestComplete().BindRaw(this, &SCreationScreen::OnThirdAPIRequestAttributeNameCompleted);
     HttpRequest->ProcessRequest();
@@ -1191,7 +1178,7 @@ void SCreationScreen::SendForthAPIRequest_ModelNames()
     HttpRequest->SetURL(Url);
     HttpRequest->SetVerb("GET");
     HttpRequest->SetHeader("Content-Type", "application/json");
-    HttpRequest->SetHeader("X-RapidAPI-Key", APIKey.ToString());
+    HttpRequest->SetHeader("X-RapidAPI-Key", APIKey);
     HttpRequest->SetHeader("X-RapidAPI-Host", "opus5.p.rapidapi.com");
     HttpRequest->SetContentAsString(JsonData);
     HttpRequest->OnProcessRequestComplete().BindRaw(this, &SCreationScreen::OnForthAPIRequestModelNamesCompleted);
@@ -1208,7 +1195,7 @@ void SCreationScreen::OnForthAPIRequestModelNamesCompleted(FHttpRequestPtr Reque
 
         if (FJsonSerializer::Deserialize(Reader, JsonObject) && JsonObject.IsValid())
         {
-            ComboBoxOptions.Empty(); // Clear previous options
+            ModelOptions.Empty(); // Clear previous options
             Structures.Empty();     // Clear previous structures
 
             // Parse Structures
@@ -1220,7 +1207,7 @@ void SCreationScreen::OnForthAPIRequestModelNamesCompleted(FHttpRequestPtr Reque
                     if (Value.IsValid() && Value->Type == EJson::String)
                     {
                         TSharedPtr<FString> structure = MakeShared<FString>(Value->AsString());
-                        ComboBoxOptions.Add(structure);
+                        ModelOptions.Add(structure);
                         Structures.Add(structure); // Add to the Structures array
                     }
                 }
@@ -1234,22 +1221,22 @@ void SCreationScreen::OnForthAPIRequestModelNamesCompleted(FHttpRequestPtr Reque
                 {
                     if (Value.IsValid() && Value->Type == EJson::String)
                     {
-                        ComboBoxOptions.Add(MakeShared<FString>(Value->AsString()));
+                        ModelOptions.Add(MakeShared<FString>(Value->AsString()));
                     }
                 }
             }
 
             // Update the ComboBox
-            if (ComboBoxWidget.IsValid())
+            if (ModelComboBox.IsValid())
             {
-                ComboBoxWidget->RefreshOptions();
+                ModelComboBox->RefreshOptions();
             }
 
             // Set the initial selected item
-            if (ComboBoxOptions.Num() > 0)
+            if (ModelOptions.Num() > 0)
             {
-                CurrentItem = ComboBoxOptions[0];
-                ComboBoxWidget->SetSelectedItem(CurrentItem);
+                CurrentModel = ModelOptions[0];
+                ModelComboBox->SetSelectedItem(CurrentModel);
             }
         }
         else

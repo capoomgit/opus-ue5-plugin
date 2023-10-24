@@ -258,7 +258,7 @@ TSharedRef<ITableRow> SQueueScreen::OnGenerateRowForList(TSharedPtr<FQueueRow> I
                         .OnClicked_Lambda([this, CurrentIndex]() {
                         if (QueueData[CurrentIndex]->Status == TEXT("COMPLETED")) {
                             // TODO Download and unzip using 7zip
-                            //DownloadAndUnzipMethod(QueueData[CurrentIndex]->DownloadLink, QueueData[CurrentIndex]->DateTime, QueueData[CurrentIndex]->Job);
+                            DownloadAndUnzipMethod(QueueData[CurrentIndex]->DownloadLink, QueueData[CurrentIndex]->DateTime, QueueData[CurrentIndex]->Job);
                             NotificationHelper.ShowNotificationSuccess(LOCTEXT("Success", "The addition of the component is in progress. This might take some time varying the size of the job."));
                         }
                         else if (QueueData[CurrentIndex]->Status == TEXT("IN_PROGRESS")) {
@@ -310,14 +310,127 @@ void SQueueScreen::WriteQueueToFile()
     FFileHelper::SaveStringToFile(fileContent, *AbsolutePath);
 }
 
+// ------------------------------
+// --- DOWNLOAD&UNZIP METHODS
+// ------------------------------
+
+void SQueueScreen::DownloadAndUnzipMethod(const FString& URL, const FString& DateTime, const FString& JobName)
+{
+    UE_LOG(LogTemp, Warning, TEXT("Initiating download from URL: %s"), *URL);
+
+    TSharedRef<IHttpRequest, ESPMode::ThreadSafe> HttpRequest = FHttpModule::Get().CreateRequest();
+    HttpRequest->SetVerb("GET");
+    HttpRequest->SetURL(URL);
+
+    //TODO: this section must be revised to a proper try-catch structure
+    HttpRequest->OnProcessRequestComplete().BindLambda([this, DateTime, JobName](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
+        {
+            if (bWasSuccessful && Response.IsValid())
+            {
+                // Create a "ZippedContents" folder if it does not exist
+                FString ZippedContentsDir = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("ZippedContents"));
+                if (!FPaths::DirectoryExists(ZippedContentsDir))
+                {
+                    FPlatformFileManager::Get().GetPlatformFile().CreateDirectory(*ZippedContentsDir);
+                }
+
+                // Generate dynamic folder name based on DateTime
+                FString DynamicFolderName = FString::Printf(TEXT("%s-%s"), *JobName, *DateTime);
+
+                // Define where you want to save the downloaded zip file
+                FString DownloadedZipFile = FPaths::Combine(ZippedContentsDir, DynamicFolderName + TEXT(".zip"));
+
+                UE_LOG(LogTemp, Warning, TEXT("Attempting to save downloaded file to: %s"), *DownloadedZipFile);
+
+                // Save the downloaded zip data to the specified path
+                if (FFileHelper::SaveArrayToFile(Response->GetContent(), *DownloadedZipFile))
+                {
+                    UE_LOG(LogTemp, Warning, TEXT("File saved successfully to: %s"), *DownloadedZipFile);
+
+                    // Define where you want to unzip the contents
+                    FString UnzipDirectory = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("UnzippedContents"));
+                    UE_LOG(LogTemp, Warning, TEXT("Attempting to unzip to: %s"), *UnzipDirectory);
+
+                    // Clear the UnzippedContents folder if it exists, then recreate it
+                    if (FPaths::DirectoryExists(UnzipDirectory))
+                    {
+                        FPlatformFileManager::Get().GetPlatformFile().DeleteDirectoryRecursively(*UnzipDirectory);
+                    }
+                    FPlatformFileManager::Get().GetPlatformFile().CreateDirectory(*UnzipDirectory);
+
+                    // Call the 7-Zip extraction function
+                    if (ExtractWith7Zip(DownloadedZipFile, UnzipDirectory))
+                    {
+                        UE_LOG(LogTemp, Warning, TEXT("Unzip operation successful"));
+
+                        // Once unzipped, copy the content to the Content/OPUS directory
+                        FString ContentDir = FPaths::ProjectContentDir();
+                        FString OPUSContentDirectory = FPaths::Combine(ContentDir, TEXT("OPUS"));
+
+                        // Create OPUS folder if it doesn't exist
+                        if (!FPaths::DirectoryExists(OPUSContentDirectory))
+                        {
+                            FPlatformFileManager::Get().GetPlatformFile().CreateDirectory(*OPUSContentDirectory);
+                        }
+
+                        // Extract a name from the downloaded file for the subfolder
+                        FString SubFolderName = FPaths::GetBaseFilename(DownloadedZipFile);
+                        FString DestinationSubFolder = FPaths::Combine(OPUSContentDirectory, SubFolderName);
+
+                        // Create a subfolder with the extracted name
+                        if (!FPaths::DirectoryExists(DestinationSubFolder))
+                        {
+                            FPlatformFileManager::Get().GetPlatformFile().CreateDirectory(*DestinationSubFolder);
+                        }
+
+                        // Copy the unzipped files to the OPUS sub-directory
+                        FPlatformFileManager::Get().GetPlatformFile().CopyDirectoryTree(*DestinationSubFolder, *UnzipDirectory, true);
+
+                        UE_LOG(LogTemp, Warning, TEXT("Files copied to the Content/OPUS/%s directory"), *SubFolderName);
+                    }
+                    else
+                    {
+                        UE_LOG(LogTemp, Error, TEXT("Failed to initiate unzip operation"));
+                    }
+                }
+                else
+                {
+                    UE_LOG(LogTemp, Error, TEXT("Failed to save the file to: %s"), *DownloadedZipFile);
+                }
+            }
+            else
+            {
+                // Log an error
+                UE_LOG(LogTemp, Error, TEXT("Failed to download file: %s"), *Response->GetContentAsString());
+            }
+        });
+
+    HttpRequest->ProcessRequest();
+}
+
+bool SQueueScreen::ExtractWith7Zip(const FString& ZipFile, const FString& DestinationDirectory)
+{
+    // Get the path to 7za.exe within the plugin's Binaries directory.
+    FString PluginDir = FPaths::Combine(FPaths::ProjectPluginsDir(), TEXT("OPUS"));
+    FString SevenZipExecutable = FPaths::Combine(PluginDir, TEXT("Binaries"), TEXT("7za.exe"));
+
+    FString CommandArgs = FString::Printf(TEXT("e \"%s\" -o\"%s\" -y"), *ZipFile, *DestinationDirectory);
+
+    FProcHandle Handle = FPlatformProcess::CreateProc(*SevenZipExecutable, *CommandArgs, true, false, false, nullptr, 0, nullptr, nullptr);
+    if (Handle.IsValid())
+    {
+        FPlatformProcess::WaitForProc(Handle);
+        return true;
+    }
+    return false;
+}
+
 // --------------------------------
 // --- BUTTON CALLBACK METHODS ----
 // --------------------------------
 FReply SQueueScreen::ReturnButtonClicked()
 {
-    // TODO Return to creation screen from queue screen
-    //bIsQueueClicked = false;  // Reset to show the main page
-    //RebuildWidget();  // Rebuild the widget to go back to the main page
+    OnCreationScreenEnabledDelegate.Broadcast();
     return FReply::Handled();
 }
 
@@ -425,7 +538,7 @@ void SQueueScreen::SendSecondAPIRequest_JobResult(FString jobID)
     TSharedRef<IHttpRequest, ESPMode::ThreadSafe> HttpRequest = FHttpModule::Get().CreateRequest();
     HttpRequest->SetVerb("GET");
     HttpRequest->SetURL(URL + Parameters);
-    HttpRequest->SetHeader("X-RapidAPI-Key", APIKey.ToString());
+    HttpRequest->SetHeader("X-RapidAPI-Key", APIKey);
     HttpRequest->SetHeader("X-RapidAPI-Host", "opus5.p.rapidapi.com");
     HttpRequest->OnProcessRequestComplete().BindLambda([this, jobID](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
         {
@@ -433,7 +546,7 @@ void SQueueScreen::SendSecondAPIRequest_JobResult(FString jobID)
         });
     HttpRequest->ProcessRequest();
     UE_LOG(LogTemp, Error, TEXT("Reached the end of request"));
-    UE_LOG(LogTemp, Log, TEXT("Stored API Key: %s"), *APIKey.ToString());
+    UE_LOG(LogTemp, Log, TEXT("Stored API Key: %s"), *APIKey);
     UE_LOG(LogTemp, Log, TEXT("Sending request to URL: %s"), *(URL + Parameters));
 }
 
@@ -523,5 +636,8 @@ void SQueueScreen::OnSecondAPIRequestJobResultCompleted(FHttpRequestPtr Request,
         UE_LOG(LogTemp, Warning, TEXT("Request failed: %s"), *Response->GetContentAsString());
     }
 }
+
+void SQueueScreen::SetAPIKey(FString apiKey) { APIKey = apiKey; }
+
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 #undef LOCTEXT_NAMESPACE

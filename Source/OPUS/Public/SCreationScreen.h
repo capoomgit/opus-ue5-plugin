@@ -7,20 +7,26 @@
 #include "Http.h"
 #include "EditorNotificationHelper.h"
 
-/**
- * 
- */
+
+DECLARE_MULTICAST_DELEGATE(FOnQueueScreenEnabled);
+DECLARE_MULTICAST_DELEGATE(FOnLogout);
+
 class OPUS_API SCreationScreen : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS(SCreationScreen)
-		: _APIKey(FText::GetEmpty())
+		: _APIKey("")
 	{}
-	SLATE_ARGUMENT(FText, APIKey)
+	SLATE_ARGUMENT(FString, APIKey)
 	SLATE_END_ARGS()
 
 	/** Constructs this widget with InArgs */
 	void Construct(const FArguments& InArgs);
+	void SetAPIKey(FString apiKey);
+
+	// Delegate 
+	FOnQueueScreenEnabled OnQueueScreenEnabledDelegate;
+	FOnLogout OnLogoutDelegate;
 
 private:
 	//STRUCT DEFINITIONS
@@ -101,11 +107,12 @@ private:
 
 	FString ConstructJSONData();
 	bool IsParameter(const FString& Keyword);
+	FReply ShowWarningWindow(FString warningMessage);
 	EVisibility GetParamInputBoxVisibility() const;
 	FText GetParamHintText() const;
 
 private:
-	FText APIKey;
+	FString APIKey;
 	EditorNotificationHelper NotificationHelper;
 
 	// MEMBER VARIABLE DEFINITIONS
@@ -123,9 +130,9 @@ private:
 	bool IsGLTFSelected = false;
 
 	//COMBOBOX DEFINITIONS
-	TSharedPtr<FString> CurrentItem;
-	TArray<TSharedPtr<FString>> ComboBoxOptions;
-	TSharedPtr<SComboBox<TSharedPtr<FString>>> ComboBoxWidget;
+	TSharedPtr<FString> CurrentModel;
+	TArray<TSharedPtr<FString>> ModelOptions;
+	TSharedPtr<SComboBox<TSharedPtr<FString>>> ModelComboBox;
 	TArray<TSharedPtr<FString>> Structures;
 
 

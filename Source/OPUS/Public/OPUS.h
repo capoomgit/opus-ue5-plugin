@@ -6,6 +6,7 @@
 #include "SLoginScreen.h"
 #include "SCreationScreen.h"
 #include "SQueueScreen.h"
+#include "EditorNotificationHelper.h"
 
 // Libraries
 #include "Modules/ModuleManager.h"
@@ -35,16 +36,24 @@ public:
 private:
 
 	void RegisterMenus();
-	void RegisterScreens();
 	void CreateWindow();
+	void ShowScreen(OPUSScreenState screen);
 	void ShowLoginScreen();
 	void ShowCreationScreen();
 	void ShowQueueScreen();
-	bool CheckSavedAPIKey();
+	void CleanUp();
 
+	// Register Screens
+	void RegisterLoginScreen();
+	void RegisterCreationScreen();
+	void RegisterQueueScreen();
 
-	//Events
-	void OnLoginSuccessful(FText apiKey);
+	//Delegate Events
+	void OnLoginSuccessful(FString apiKey);
+	void OnLogout();
+	void OnCreationScreenEnabled();
+	void OnQueueScreenEnabled();
+	void OnWindowClosed();
 
 private:
 	TSharedPtr<class FUICommandList> PluginCommands;
@@ -54,9 +63,11 @@ private:
 	TSharedPtr<class SLoginScreen> LoginScreen;
 	TSharedPtr<class SCreationScreen> CreationScreen;
 	TSharedPtr<class SQueueScreen> QueueScreen;
+	OPUSScreenState CurrentScreenState;
 
 	FString CurrentAPIKey;
 	bool IsLoggedIn = false;
+	EditorNotificationHelper NotificationHelper;
 
 	
 };

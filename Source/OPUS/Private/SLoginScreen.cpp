@@ -17,79 +17,106 @@
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SLoginScreen::Construct(const FArguments& InArgs)
 {
-
-	ChildSlot
-	[
-        SNew(SOverlay)
-
-            + SOverlay::Slot()
-            .VAlign(VAlign_Center)
-            .HAlign(HAlign_Center)
-            .Padding(-35, -150, 0, 0)  // Move the image up
+    // If api key exists in file, try to log in
+    if (CheckStoredAPIKey()) 
+    {
+        ChildSlot
             [
-                SNew(SImage)
-                    .Image(FOPUSStyle::Get().GetBrush("OPUS.APILogo"))
-            ]
+                SNew(SOverlay)
 
-            + SOverlay::Slot()
-            .VAlign(VAlign_Center)
-            .HAlign(HAlign_Center)
-            [
-                SNew(SVerticalBox)
+                    + SOverlay::Slot()
+                    .VAlign(VAlign_Center)
+                    .HAlign(HAlign_Center)
+                    .Padding(0, -150, 0, 0)  // Move the image up
+                    [
+                        SNew(SImage)
+                            .Image(FOPUSStyle::Get().GetBrush("OPUS.APILogo"))
+                    ]
 
-                    + SVerticalBox::Slot()
+                    + SOverlay::Slot()
                     .VAlign(VAlign_Center)
                     .HAlign(HAlign_Center)
                     [
-                        SNew(SHorizontalBox)
+                        SNew(STextBlock)
+                            .Text(LOCTEXT("Logging in", "Logging in from previous API key"))
+                    ]
+            ];
+    }
+    // If can't log in or no stored API key exists, show login screen
+    else 
+    {
+        ChildSlot
+            [
+                SNew(SOverlay)
 
-                            + SHorizontalBox::Slot()
-                            .AutoWidth()
-                            .Padding(0, 0, 50, 0)
+                    + SOverlay::Slot()
+                    .VAlign(VAlign_Center)
+                    .HAlign(HAlign_Center)
+                    .Padding(-35, -150, 0, 0)  // Move the image up
+                    [
+                        SNew(SImage)
+                            .Image(FOPUSStyle::Get().GetBrush("OPUS.APILogo"))
+                    ]
+
+                    + SOverlay::Slot()
+                    .VAlign(VAlign_Center)
+                    .HAlign(HAlign_Center)
+                    [
+                        SNew(SVerticalBox)
+
+                            + SVerticalBox::Slot()
+                            .VAlign(VAlign_Center)
+                            .HAlign(HAlign_Center)
                             [
-                                SNew(SBorder)
-                                    .BorderImage(FCoreStyle::Get().GetBrush("Border"))
-                                    .BorderBackgroundColor(FLinearColor::White)
-                                    .Padding(FMargin(5.0f))
+                                SNew(SHorizontalBox)
+
+                                    + SHorizontalBox::Slot()
+                                    .AutoWidth()
+                                    .Padding(0, 0, 50, 0)
                                     [
-                                        SNew(SHorizontalBox)
-
-                                            + SHorizontalBox::Slot()
-                                            .AutoWidth()
+                                        SNew(SBorder)
+                                            .BorderImage(FCoreStyle::Get().GetBrush("Border"))
+                                            .BorderBackgroundColor(FLinearColor::White)
+                                            .Padding(FMargin(5.0f))
                                             [
-                                                SNew(STextBlock)
-                                                    .Text(LOCTEXT("RapidKeyLabel", "Rapid Key: "))
-                                            ]
+                                                SNew(SHorizontalBox)
 
-                                            + SHorizontalBox::Slot()
-                                            .AutoWidth()
-                                            [
-                                                SNew(SBox)
-                                                    .WidthOverride(350)
+                                                    + SHorizontalBox::Slot()
+                                                    .AutoWidth()
                                                     [
-                                                        SAssignNew(KeyField, SEditableText)
-                                                            .HintText(LOCTEXT("KeyHint", "                              Please enter your rapid key"))
-                                                            .OnTextCommitted(this, &SLoginScreen::OnTextCommittedInKeyField)
+                                                        SNew(STextBlock)
+                                                            .Text(LOCTEXT("RapidKeyLabel", "Rapid Key: "))
+                                                    ]
+
+                                                    + SHorizontalBox::Slot()
+                                                    .AutoWidth()
+                                                    [
+                                                        SNew(SBox)
+                                                            .WidthOverride(350)
+                                                            [
+                                                                SAssignNew(KeyField, SEditableText)
+                                                                    .HintText(LOCTEXT("KeyHint", "                              Please enter your rapid key"))
+                                                                    .OnTextCommitted(this, &SLoginScreen::OnTextCommittedInKeyField)
+                                                            ]
                                                     ]
                                             ]
                                     ]
-                            ]
 
-                            + SHorizontalBox::Slot()
-                            .AutoWidth()
-                            [
-                                SNew(SBox)
-                                    .WidthOverride(80)
+                                    + SHorizontalBox::Slot()
+                                    .AutoWidth()
                                     [
-                                        SNew(SButton)
-                                            .Text(LOCTEXT("LoginButton", "Login"))
-                                            .OnClicked(this, &SLoginScreen::LoginButtonClicked)
+                                        SNew(SBox)
+                                            .WidthOverride(80)
+                                            [
+                                                SNew(SButton)
+                                                    .Text(LOCTEXT("LoginButton", "Login"))
+                                                    .OnClicked(this, &SLoginScreen::LoginButtonClicked)
+                                            ]
                                     ]
                             ]
                     ]
-            ]
-	];
-	
+            ];
+    }
 }
 
 void SLoginScreen::OnTextCommittedInKeyField(const FText& Text, ETextCommit::Type CommitMethod)
@@ -105,51 +132,91 @@ FReply SLoginScreen::LoginButtonClicked()
     // Get the input from the UsernameField
     if (KeyField.IsValid())
     {
-        FString UserKey = KeyField->GetText().ToString();
-
-        // Make API call with Username
-        FString Url = "https://opus5.p.rapidapi.com/get_model_names";
-        TSharedRef<IHttpRequest, ESPMode::ThreadSafe> HttpRequest = FHttpModule::Get().CreateRequest();
-        HttpRequest->SetURL(Url);
-        HttpRequest->SetVerb("GET");
-        HttpRequest->SetHeader("Content-Type", "application/json");
-        HttpRequest->SetHeader("X-RapidAPI-Key", UserKey);
-        HttpRequest->SetHeader("X-RapidAPI-Host", "opus5.p.rapidapi.com");
-
-        HttpRequest->OnProcessRequestComplete().BindLambda([this, UserKey](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
-            {
-                if (bWasSuccessful && Response.IsValid() && Response->GetResponseCode() == 200)
-                {
-                    AsyncTask(ENamedThreads::AnyBackgroundThreadNormalTask, [this, UserKey]()
-                        {
-                            FPlatformProcess::Sleep(2);
-
-                            AsyncTask(ENamedThreads::GameThread, [this, UserKey]()
-                                {
-                                    NotificationHelper.ShowNotificationSuccess(LOCTEXT("ValidKeyNotification", "Logged in successfully!"));
-
-                                    // TODO dont save to a text file
-                                    // Save the API key to a file
-                                    FString SaveFilePath = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("APIKey.txt"));
-                                    FFileHelper::SaveStringToFile(UserKey, *SaveFilePath);
-                                    FFileHelper::LoadFileToString(StoredAPIKey, *SaveFilePath);
-
-                                    IsLoggedIn = true;
-                                    OnLoginSuccessfulDelegate.Broadcast(FText::FromString(StoredAPIKey));
-
-                                });
-                        });
-                }
-                else
-                {
-                    NotificationHelper.ShowNotificationFail(LOCTEXT("InvalidKeyNotification", "Key is not recognized!"));
-                }
-            });
-
-        HttpRequest->ProcessRequest();
+        LogIn(KeyField->GetText().ToString());
     }
 
     return FReply::Handled();
+}
+
+void SLoginScreen::LogIn(FString apiKey)
+{
+    // Make API call with Username
+    FString Url = "https://opus5.p.rapidapi.com/get_model_names";
+    TSharedRef<IHttpRequest, ESPMode::ThreadSafe> HttpRequest = FHttpModule::Get().CreateRequest();
+    HttpRequest->SetURL(Url);
+    HttpRequest->SetVerb("GET");
+    HttpRequest->SetHeader("Content-Type", "application/json");
+    HttpRequest->SetHeader("X-RapidAPI-Key", apiKey);
+    HttpRequest->SetHeader("X-RapidAPI-Host", "opus5.p.rapidapi.com");
+
+    HttpRequest->OnProcessRequestComplete().BindLambda([this, apiKey](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
+        {
+            if (bWasSuccessful && Response.IsValid() && Response->GetResponseCode() == 200)
+            {
+                AsyncTask(ENamedThreads::AnyBackgroundThreadNormalTask, [this, apiKey]()
+                    {
+                        FPlatformProcess::Sleep(2);
+
+                        AsyncTask(ENamedThreads::GameThread, [this, apiKey]()
+                            {
+                                SaveKeyToFile(apiKey);
+                                NotificationHelper.ShowNotificationSuccess(LOCTEXT("ValidKeyNotification", "Logged in successfully!"));
+                                OnLoginSuccessfulDelegate.Broadcast(StoredAPIKey);
+                                
+                            });
+                    });
+            }
+            else
+            {
+                NotificationHelper.ShowNotificationFail(LOCTEXT("InvalidKeyNotification", "Key is not recognized!"));
+                RemoveKeyFile();
+                RebuildWidget();
+            }
+        });
+
+    HttpRequest->ProcessRequest();
+}
+
+bool SLoginScreen::CheckStoredAPIKey()
+{
+    // Find save file 
+    FString SaveFilePath = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("OPUSAPIKey.txt"));
+
+    // check save file file != null
+    if (FPaths::FileExists(SaveFilePath))
+    {
+        // string extracted from txt file
+        // !! TODO  !! encrypt this key
+        FFileHelper::LoadFileToString(StoredAPIKey, *SaveFilePath);
+        LogIn(StoredAPIKey);
+        return true;
+    }
+
+    return false;
+}
+
+void SLoginScreen::SaveKeyToFile(FString key) 
+{
+    // TODO dont save to a text file
+    // Save the API key to a file
+    FString SaveFilePath = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("OPUSAPIKey.txt"));
+    FFileHelper::SaveStringToFile(key, *SaveFilePath);
+    FFileHelper::LoadFileToString(StoredAPIKey, *SaveFilePath);
+}
+
+void SLoginScreen::RemoveKeyFile() 
+{
+    // Delete the APIKey.txt file
+    FString SaveFilePath = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("OPUSAPIKey.txt"));
+    if (FPaths::FileExists(SaveFilePath))
+    {
+        IFileManager::Get().Delete(*SaveFilePath);
+    }
+}
+
+void SLoginScreen::RebuildWidget()
+{
+    Construct(FArguments());
 }
 
 #undef LOCTEXT_NAMESPACE

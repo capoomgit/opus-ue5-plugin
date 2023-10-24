@@ -1,14 +1,5 @@
 {
 	"RemapUnityFiles": 
 	{
-		"Module.OPUS.cpp.obj": [
-			"EditorNotificationHelper.cpp.obj",
-			"OPUS.cpp.obj",
-			"OPUSCommands.cpp.obj",
-			"OPUSStyle.cpp.obj",
-			"SCreationScreen.cpp.obj",
-			"SLoginScreen.cpp.obj",
-			"SQueueScreen.cpp.obj"
-		]
 	}
 }

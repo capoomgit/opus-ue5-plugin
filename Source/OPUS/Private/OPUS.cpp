@@ -12,6 +12,7 @@
 // Libraries
 #include "Misc/FileHelper.h"
 #include "Misc/MessageDialog.h"
+#include "Async/Async.h"
 
 static const FName OPUSTabName("OPUS");
 
@@ -39,9 +40,11 @@ void FOPUSModule::StartupModule()
 
 void FOPUSModule::ShutdownModule()
 {
+	// TODO Clean up memory and stop all background processes
+	
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 	// we call this function before unloading the module.
-
+	NotificationHelper.ShowNotificationFail(FText::FromString("Shutting down module"));
 	UToolMenus::UnRegisterStartupCallback(this);
 
 	UToolMenus::UnregisterOwner(this);
@@ -51,12 +54,12 @@ void FOPUSModule::ShutdownModule()
 	FOPUSCommands::Unregister();
 }
 
+// This method is called when plugin button is clicked
 void FOPUSModule::PluginButtonClicked()
 {
-	RegisterScreens();
-
+	RegisterLoginScreen();
 	CreateWindow();
-	//FMessageDialog::Open(EAppMsgType::Ok, DialogText);
+	ShowScreen(CurrentScreenState);
 }
 
 void FOPUSModule::RegisterMenus()
@@ -84,17 +87,42 @@ void FOPUSModule::RegisterMenus()
 	}
 }
 
-void FOPUSModule::RegisterScreens()
+// Register screen methods and assign delegates
+void FOPUSModule::RegisterLoginScreen()
 {
-	SAssignNew(LoginScreen, SLoginScreen);
-	SAssignNew(CreationScreen, SCreationScreen)
-		.APIKey(FText::FromString(CurrentAPIKey));
-	SAssignNew(QueueScreen, SQueueScreen)
-		.APIKey(FText::FromString(CurrentAPIKey));
+	if (LoginScreen == nullptr)
+	{
+		SAssignNew(LoginScreen, SLoginScreen);
 
-	LoginScreen->OnLoginSuccessfulDelegate.AddRaw(this, &FOPUSModule::OnLoginSuccessful);
+		// Register delegate events
+		LoginScreen->OnLoginSuccessfulDelegate.AddRaw(this, &FOPUSModule::OnLoginSuccessful);
+	}
 }
 
+void FOPUSModule::RegisterCreationScreen()
+{
+	if (CreationScreen == nullptr) 
+	{
+		SAssignNew(CreationScreen, SCreationScreen)
+			.APIKey(CurrentAPIKey);
+
+		CreationScreen->OnLogoutDelegate.AddRaw(this, &FOPUSModule::OnLogout);
+		CreationScreen->OnQueueScreenEnabledDelegate.AddRaw(this, &FOPUSModule::OnQueueScreenEnabled);
+	}
+}
+
+void FOPUSModule::RegisterQueueScreen()
+{
+	if (QueueScreen == nullptr)
+	{
+		SAssignNew(QueueScreen, SQueueScreen)
+			.APIKey(CurrentAPIKey);
+
+		QueueScreen->OnCreationScreenEnabledDelegate.AddRaw(this, &FOPUSModule::OnCreationScreenEnabled);
+	}
+}
+
+// Create plugin window to populate
 void FOPUSModule::CreateWindow()
 {
 	SAssignNew(MainWindow, SWindow)
@@ -103,58 +131,82 @@ void FOPUSModule::CreateWindow()
 		.IsInitiallyMaximized(false);
 	
 	FSlateApplication::Get().AddWindow(MainWindow.ToSharedRef());
-
-	// if there is no API key, then show login page
-	if (!CheckSavedAPIKey())
-	{
-		ShowLoginScreen();
-	}
-
-	else
-	{
-		ShowCreationScreen();
-	}
 }
 
+void FOPUSModule::ShowScreen(OPUSScreenState screen)
+{
+	switch (screen)
+	{
+	case LOGIN:
+		ShowLoginScreen();
+		break;
+
+	case CREATION:
+		ShowCreationScreen();
+		break;
+
+	case QUEUE:
+		ShowQueueScreen();
+		break;
+
+	default:
+		ShowLoginScreen();
+		break;
+	}
+}
 void FOPUSModule::ShowLoginScreen()
 {
 	MainWindow->SetContent(LoginScreen.ToSharedRef());
+	CurrentScreenState = LOGIN;
 }
 
 void FOPUSModule::ShowCreationScreen() 
 {
 	MainWindow->SetContent(CreationScreen.ToSharedRef());
+	CurrentScreenState = CREATION;
 }
 
 void FOPUSModule::ShowQueueScreen() 
 {
 	MainWindow->SetContent(QueueScreen.ToSharedRef());
+	CurrentScreenState = QUEUE;
 }
 
-void FOPUSModule::OnLoginSuccessful(FText apiKey) 
+// Delegate Events
+void FOPUSModule::OnLoginSuccessful(FString apiKey) 
 {
-	CurrentAPIKey = apiKey.ToString();
+	CurrentAPIKey = apiKey;
+	RegisterCreationScreen();
 	ShowCreationScreen();
 }
 
-bool FOPUSModule::CheckSavedAPIKey()
+void FOPUSModule::OnLogout()
 {
-	// Find save file 
-	FString SaveFilePath = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("APIKey.txt"));
+	CurrentAPIKey = "";
+	QueueScreen->SetAPIKey("");
+	LoginScreen->RebuildWidget();
+	ShowLoginScreen();
+}
 
-	// check save file file != null
-	if (FPaths::FileExists(SaveFilePath) && CurrentAPIKey.IsEmpty())
-	{
-		// string extracted from txt file
-		// !! TODO  !! encrypt this key
-		FFileHelper::LoadFileToString(CurrentAPIKey, *SaveFilePath);
+void FOPUSModule::OnQueueScreenEnabled() 
+{
+	RegisterQueueScreen();
+	ShowQueueScreen();
+}
 
-		// If the file exists, consider the user as logged in and go directly to main GUI
-		// TODO log in as user
-		IsLoggedIn = true;
-	}
+void FOPUSModule::OnCreationScreenEnabled()
+{
+	ShowCreationScreen();
+}
 
-	return !CurrentAPIKey.IsEmpty();
+void FOPUSModule::OnWindowClosed()
+{
+
+}
+
+void FOPUSModule::CleanUp()
+{
+
 }
 
 #undef LOCTEXT_NAMESPACE

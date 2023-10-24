@@ -7,22 +7,26 @@
 #include "Http.h"
 #include "EditorNotificationHelper.h"
 
-/**
- * 
- */
+DECLARE_MULTICAST_DELEGATE(FOnCreationScreenEnabled);
+
 class OPUS_API SQueueScreen : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS(SQueueScreen)
-		: _APIKey(FText::GetEmpty())
+		: _APIKey("")
 		, _IsFBXSelected(true)
 		{}
-	SLATE_ARGUMENT(FText, APIKey)
+	SLATE_ARGUMENT(FString, APIKey)
 	SLATE_ARGUMENT(bool, IsFBXSelected)
 	SLATE_END_ARGS()
 
 	/** Constructs this widget with InArgs */
 	void Construct(const FArguments& InArgs);
+	void SetAPIKey(FString apiKey);
+
+	// Delegate to show creation screen
+	FOnCreationScreenEnabled OnCreationScreenEnabledDelegate;
+
 
 public:
 	// Struct Definitions
@@ -54,12 +58,16 @@ private:
 	void SendSecondAPIRequest_JobResult(FString jobID);
 	void OnSecondAPIRequestJobResultCompleted(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful, FString jobID);
 
+	// Download and unzip methods
+	bool ExtractWith7Zip(const FString& ZipFile, const FString& DestinationDirectory);
+	void DownloadAndUnzipMethod(const FString& URL, const FString& DateTime, const FString& JobName);
+
 private:
 	TSharedPtr<SListView<TSharedPtr<FQueueRow>>> QueueListView;
 	TArray<TSharedPtr<FQueueRow>> QueueData;
 	int32 CurrentQueueIndex = 0;
 
-	FText APIKey;
+	FString APIKey;
 	FString SecondAPILink;
 
 	bool IsFBXSelected = true;
