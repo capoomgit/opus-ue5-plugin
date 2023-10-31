@@ -21,6 +21,7 @@ public:
 
 	// Delegates
 	FOnLoginSuccessful OnLoginSuccessfulDelegate;
+	void LogOut();
 
 private:
 	void OnTextCommittedInKeyField(const FText& Text, ETextCommit::Type CommitMethod);

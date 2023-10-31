@@ -193,6 +193,7 @@ void SQueueScreen::ReadAndParseQueueFile()
                 }
             }
 
+            // TODO Dont run loop when Queue screen not active
             // Refresh the ListView to reflect the new data
             QueueListView->RequestListRefresh();
         }

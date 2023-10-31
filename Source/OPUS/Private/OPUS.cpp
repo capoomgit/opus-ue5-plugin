@@ -59,6 +59,7 @@ void FOPUSModule::PluginButtonClicked()
 {
 	RegisterLoginScreen();
 	CreateWindow();
+
 	ShowScreen(CurrentScreenState);
 }
 
@@ -183,7 +184,7 @@ void FOPUSModule::OnLoginSuccessful(FString apiKey)
 void FOPUSModule::OnLogout()
 {
 	CurrentAPIKey = "";
-	QueueScreen->SetAPIKey("");
+	LoginScreen->LogOut();
 	LoginScreen->RebuildWidget();
 	ShowLoginScreen();
 }

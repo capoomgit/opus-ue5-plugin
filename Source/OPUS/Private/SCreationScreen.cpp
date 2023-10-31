@@ -4,6 +4,7 @@
 #include "SCreationScreen.h"
 #include "SlateOptMacros.h"
 #include "OPUSStyle.h"
+#include "SFilteredSelectionTextBox.h"
 
 // Libraries
 #include "Misc/FileHelper.h"
@@ -22,14 +23,17 @@ void SCreationScreen::Construct(const FArguments& InArgs)
 {
 	APIKey = InArgs._APIKey;
     CurrentModel = MakeShared<FString>(TEXT("Loading..."));
-    FilteredSuggestions.Empty();
+    ParameterFilteredSuggestions.Empty();
     ParameterSuggestions.Empty();
+    TagFilteredSuggestions.Empty();
+    
 
 
     ChildSlot
         [
             SNew(SOverlay)
 
+                // Logout button
                 + SOverlay::Slot()
                 .VAlign(VAlign_Top)
                 .HAlign(HAlign_Right)
@@ -40,13 +44,14 @@ void SCreationScreen::Construct(const FArguments& InArgs)
                         .OnClicked(this, &SCreationScreen::LogoutButtonClicked)
                 ]
 
+                // Queue Screen button
                 + SOverlay::Slot()
                 .VAlign(VAlign_Top)
                 .HAlign(HAlign_Right)
                 .Padding(0, 0, 95, 0)
                 [
                     SNew(SButton)
-                        .Text(LOCTEXT("QueueButton", "Queue ↡"))
+                        .Text(LOCTEXT("JobQueueButton", "Job Queue ↡"))
                         .OnClicked(this, &SCreationScreen::QueueButtonClicked)
                 ]
                 
@@ -62,7 +67,7 @@ void SCreationScreen::Construct(const FArguments& InArgs)
                         .Padding(30, 0, 200, 0)
                         [
                             SNew(STextBlock)
-                                .Text(LOCTEXT("Select Structure", "Please select a model to generate."))
+                                .Text(LOCTEXT("Select Model", "Please select a model to generate."))
                         ]
 
                         // Component selection combo box
@@ -135,45 +140,14 @@ void SCreationScreen::Construct(const FArguments& InArgs)
                                 .Text(LOCTEXT("Select preset", "Select a model preset"))
                         ]
 
+                        // Tag Search Box
                         + SVerticalBox::Slot()
                         .AutoHeight()
                         .Padding(30, 10, 30, 0)
                         [
-                            SNew(SOverlay)
-                                + SOverlay::Slot()
-                                .VAlign(VAlign_Top)
-                                [
-                                    SNew(SVerticalBox)
-
-                                        + SVerticalBox::Slot()
-                                        .AutoHeight()
-                                        [
-                                            SNew(SBorder)
-                                                .BorderImage(FCoreStyle::Get().GetBrush("Border"))
-                                                .BorderBackgroundColor(FLinearColor::White)
-                                                .Padding(FMargin(5.0f))
-                                                [
-                                                    SAssignNew(TagsSearchBox, SEditableText)
-                                                        .OnTextChanged(this, &SCreationScreen::OnTagsSearchTextChanged)
-                                                ]
-                                        ]
-
-                                        + SVerticalBox::Slot()
-                                        .MaxHeight(111) // Set a maximum height for the suggestions box, adjust as needed
-                                        [
-                                            SNew(SScrollBox)
-
-                                                + SScrollBox::Slot()
-                                                [
-                                                    SAssignNew(TagsSuggestionsListView, SListView<TSharedPtr<FString>>)
-                                                        .ItemHeight(24)
-                                                        .ListItemsSource(&TagFilteredSuggestions)
-                                                        .OnGenerateRow(this, &SCreationScreen::GenerateTagSuggestionRow)
-                                                        .Visibility(EVisibility::Collapsed)
-                                                        .SelectionMode(ESelectionMode::Single)
-                                                ]
-                                        ]
-                                ]
+                            SAssignNew(TagSearchBox, SFilteredSelectionTextBox)
+                                .ListItemsSource(&TagFilteredSuggestions)
+                                .OnTextChanged(this, &SCreationScreen::OnTagsSearchTextChanged)
                         ]
 
                         + SVerticalBox::Slot()
@@ -188,35 +162,9 @@ void SCreationScreen::Construct(const FArguments& InArgs)
                         .AutoHeight()
                         .Padding(30, 10, 30, 0)
                         [
-                            SNew(SBorder)
-                                .BorderImage(FCoreStyle::Get().GetBrush("Border"))
-                                .BorderBackgroundColor(FLinearColor::White)
-                                .Padding(FMargin(5.0f))
-                                [
-                                    SAssignNew(SearchBox, SEditableText)
-                                        .OnTextChanged(this, &SCreationScreen::OnParamSearchTextChanged)
-                                ]
-                        ]
-
-                        + SVerticalBox::Slot()
-                        .AutoHeight()
-                        .Padding(30, 10, 30, 0)
-                        [
-                            SNew(SScrollBox)
-
-                                + SScrollBox::Slot()
-                                [
-                                    SNew(SBox)
-                                        .HeightOverride(111) // Adjust this based on your needs
-                                        [
-                                            SAssignNew(SuggestionsListView, SListView<TSharedPtr<FString>>)
-                                                .ItemHeight(24)
-                                                .ListItemsSource(&FilteredSuggestions)
-                                                .OnGenerateRow(this, &SCreationScreen::GenerateParamSuggestionRow)
-                                                .Visibility(EVisibility::Collapsed)
-                                                .SelectionMode(ESelectionMode::Single)
-                                        ]
-                                ]
+                            SAssignNew(ParameterSearchBox, SFilteredSelectionTextBox)
+                                .ListItemsSource(&ParameterFilteredSuggestions)
+                                .OnTextChanged(this, &SCreationScreen::OnParamSearchTextChanged)
                         ]
 
                         + SVerticalBox::Slot()
@@ -371,6 +319,8 @@ void SCreationScreen::Construct(const FArguments& InArgs)
                 });
         });
 	
+    TagSearchBox->OnSuggestionSelected.AddRaw(this, &SCreationScreen::OnTagSelected);
+    ParameterSearchBox->OnSuggestionSelected.AddRaw(this, &SCreationScreen::OnParameterSelected);
 }
 
 // ------------------------------
@@ -379,14 +329,6 @@ void SCreationScreen::Construct(const FArguments& InArgs)
 
 FReply SCreationScreen::LogoutButtonClicked()
 {
-
-    // Delete the APIKey.txt file
-    FString SaveFilePath = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("OPUSAPIKey.txt"));
-    if (FPaths::FileExists(SaveFilePath))
-    {
-        IFileManager::Get().Delete(*SaveFilePath);
-    }
-
     APIKey = "";
     OnLogoutDelegate.Broadcast();
     return FReply::Handled();
@@ -460,9 +402,9 @@ FReply SCreationScreen::ApplyFeatureButtonClicked()
 
     // TODO Too many nested ifs, make it leaner
 
-    if (TagsSearchBox.IsValid())
+    if (TagSearchBox.IsValid())
     {
-        FString TagBoxContent = TagsSearchBox->GetText().ToString();
+        FString TagBoxContent = TagSearchBox->GetText().ToString();
         TArray<FString> ParsedStrings;
 
         bool bFound = false;
@@ -516,7 +458,7 @@ FReply SCreationScreen::ApplyFeatureButtonClicked()
     bool bFoundParam = false;
 
     // Handling for ParamInputBox
-    if (SelectedSuggestion.IsValid() && CurrentParameterRange != FVector2D::ZeroVector)
+    if (SelectedParameterSuggestion.IsValid() && CurrentParameterRange != FVector2D::ZeroVector)
     {
         FString ParamInputContent = ParamInputBox->GetText().ToString();
         float InputValue;
@@ -527,7 +469,7 @@ FReply SCreationScreen::ApplyFeatureButtonClicked()
             {
                 for (TSharedPtr<FKeywordTableRow>& existingRow : TableRows)
                 {
-                    if (existingRow->Keyword->Equals(*SelectedSuggestion))
+                    if (existingRow->Keyword->Equals(*SelectedParameterSuggestion))
                     {
                         existingRow->Value = MakeShared<FString>(ParamInputContent);
                         bFoundParam = true;
@@ -538,7 +480,7 @@ FReply SCreationScreen::ApplyFeatureButtonClicked()
                 if (!bFoundParam)
                 {
                     TSharedPtr<FKeywordTableRow> newRow = MakeShared<FKeywordTableRow>();
-                    newRow->Keyword = SelectedSuggestion;
+                    newRow->Keyword = SelectedParameterSuggestion;
                     newRow->Value = MakeShared<FString>(ParamInputContent);
                     TableRows.Add(newRow);
                     UE_LOG(LogTemp, Warning, TEXT("New Parameter Row Added! Parameter: %s, Value: %s"), **newRow->Keyword, **newRow->Value);
@@ -586,11 +528,6 @@ void SCreationScreen::OnTagsSearchTextChanged(const FText& NewText)
 
     FString CurrentInput = NewText.ToString();
 
-    if (SuggestionsListView->GetVisibility() == EVisibility::Visible)
-    {
-        SuggestionsListView->SetVisibility(EVisibility::Collapsed);
-    }
-
     for (const TSharedPtr<FPair>& CurrentPair : TagsList)
     {
         if (CurrentPair->Tag.Contains(CurrentInput))
@@ -600,134 +537,59 @@ void SCreationScreen::OnTagsSearchTextChanged(const FText& NewText)
     }
 
     // Refresh the tags suggestion list view
-    TagsSuggestionsListView->RequestListRefresh();
-
-    if (TagFilteredSuggestions.Num() > 0)
-    {
-        TagsSuggestionsListView->SetVisibility(EVisibility::Visible);
-    }
-    else
-    {
-        TagsSuggestionsListView->SetVisibility(EVisibility::Collapsed);
-    }
+    TagSearchBox->RequestListRefresh();
 }
 
-TSharedRef<ITableRow> SCreationScreen::GenerateTagSuggestionRow(TSharedPtr<FString> Suggestion, const TSharedRef<STableViewBase>& OwnerTable)
+void SCreationScreen::OnTagSelected(TSharedPtr<FString> TagSelection)
 {
-    return SNew(STableRow<TSharedPtr<FString>>, OwnerTable)
-        [
-            SNew(SButton)
-                .Text(FText::FromString(*Suggestion))
-                .OnClicked(this, &SCreationScreen::OnTagSuggestionRowClicked, Suggestion)
-        ];
-}
-
-FReply SCreationScreen::OnTagSuggestionRowClicked(TSharedPtr<FString> Suggestion)
-{
-    if (TagsSearchBox.IsValid())
-    {
-        // Set the full suggestion (i.e., "SubCategory - Tag") in the search box
-        TagsSearchBox->SetText(FText::FromString(*Suggestion));
-    }
-
-    // Set the selected tag suggestion
-    SelectedTagSuggestion = Suggestion;
-
-    // Clear the filtered tag suggestions
-    TagFilteredSuggestions.Empty();
-
-    // Refresh the tag suggestions list view
-    TagsSuggestionsListView->RequestListRefresh();
-    TagsSuggestionsListView->Invalidate(EInvalidateWidget::Layout);
-    TagsSuggestionsListView->SetVisibility(EVisibility::Collapsed); // This will hide the tag suggestions view.
-
-    return FReply::Handled();
+    SelectedTagSuggestion = TagSelection;
 }
 
 void SCreationScreen::OnParamSearchTextChanged(const FText& NewText)
 {
-    FilteredSuggestions.Empty();
+    ParameterFilteredSuggestions.Empty();
 
     FString CurrentInput = NewText.ToString();
 
-    if (TagsSuggestionsListView->GetVisibility() == EVisibility::Visible)
-    {
-        TagsSuggestionsListView->SetVisibility(EVisibility::Collapsed);
-    }
-
     if (ParameterRanges.Contains(CurrentInput))
     {
-        SelectedSuggestion = MakeShared<FString>(CurrentInput);
+        SelectedParameterSuggestion = MakeShared<FString>(CurrentInput);
     }
     else
     {
-        SelectedSuggestion.Reset();
+        SelectedParameterSuggestion.Reset();
     }
 
     ParamInputBox->SetText(FText::GetEmpty());
 
-    if (!CurrentInput.IsEmpty())
+    
+    for (const TSharedPtr<FString>& Suggestion : ParameterSuggestions)
     {
-        for (const TSharedPtr<FString>& Suggestion : ParameterSuggestions)
+        if (Suggestion->Contains(CurrentInput))
         {
-            if (Suggestion->Contains(CurrentInput))
-            {
-                FilteredSuggestions.Add(Suggestion);
-            }
+            ParameterFilteredSuggestions.Add(Suggestion);
         }
     }
 
-    SuggestionsListView->SetVisibility(FilteredSuggestions.Num() > 0 ? EVisibility::Visible : EVisibility::Collapsed);
-
     // Refresh the list view
-    SuggestionsListView->RequestListRefresh();
-    SuggestionsListView->Invalidate(EInvalidateWidget::Layout);
-    ParamInputBox->Invalidate(EInvalidateWidget::Visibility);
+    ParameterSearchBox->RequestListRefresh();
 }
 
-TSharedRef<ITableRow> SCreationScreen::GenerateParamSuggestionRow(TSharedPtr<FString> Suggestion, const TSharedRef<STableViewBase>& OwnerTable)
+void SCreationScreen::OnParameterSelected(TSharedPtr<FString> ParameterSelection)
 {
-    return SNew(STableRow<TSharedPtr<FString>>, OwnerTable)
-        [
-            SNew(SButton)
-                .Text(FText::FromString(*Suggestion))
-                .OnClicked(this, &SCreationScreen::OnParamSuggestionRowClicked, Suggestion)
-        ];
-}
-
-FReply SCreationScreen::OnParamSuggestionRowClicked(TSharedPtr<FString> Suggestion)
-{
-    if (SearchBox.IsValid())
-    {
-        SearchBox->SetText(FText::FromString(*Suggestion));
-    }
-
-    // Set the selected suggestion
-    SelectedSuggestion = Suggestion;
-
-    ParamInputBox->SetText(FText::GetEmpty());
-
-    // Clear the filtered suggestions
-    FilteredSuggestions.Empty();
+    SelectedParameterSuggestion = ParameterSelection;
 
     // Fetch the parameter range for the selected suggestion
-    if (ParameterRanges.Contains(*Suggestion))
+    if (ParameterRanges.Contains(*ParameterSelection))
     {
-        CurrentParameterRange = ParameterRanges[*Suggestion];
+        CurrentParameterRange = ParameterRanges[*ParameterSelection];
     }
     else
     {
         CurrentParameterRange = FVector2D::ZeroVector; // default value if not found
     }
-
-    // Refresh the list view
-    SuggestionsListView->RequestListRefresh();
-    SuggestionsListView->Invalidate(EInvalidateWidget::Layout);
-    SuggestionsListView->SetVisibility(EVisibility::Collapsed); // This will hide the suggestions view.
-    ParamInputBox->Invalidate(EInvalidateWidget::Visibility);
-
-    return FReply::Handled();
 }
+
 
 // ------------------------------
 // --- TABLE METHODS
@@ -818,18 +680,18 @@ void SCreationScreen::ComboBoxSelectionChanged(TSharedPtr<FString> NewItem, ESel
         CurrentModel = NewItem;
 
         // Clear the search boxes
-        if (SearchBox.IsValid())
+        if (ParameterSearchBox.IsValid())
         {
-            SearchBox->SetText(FText::GetEmpty());
+            ParameterSearchBox->SetText(FText::GetEmpty());
         }
 
-        if (TagsSearchBox.IsValid())
+        if (TagSearchBox.IsValid())
         {
-            TagsSearchBox->SetText(FText::GetEmpty());
+            TagSearchBox->SetText(FText::GetEmpty());
         }
 
         // Clear the filtered suggestion lists (assuming you still want this)
-        FilteredSuggestions.Empty();
+        ParameterFilteredSuggestions.Empty();
         TagFilteredSuggestions.Empty();
 
         ResetTable();
@@ -838,18 +700,18 @@ void SCreationScreen::ComboBoxSelectionChanged(TSharedPtr<FString> NewItem, ESel
         SendThirdAPIRequest_AttributeName();
 
         // Refresh the list view
-        SuggestionsListView->RequestListRefresh();
-        SuggestionsListView->Invalidate(EInvalidateWidget::Layout);
+        ParameterSearchBox->RequestListRefresh();
+        ParameterSearchBox->Invalidate(EInvalidateWidget::Layout);
 
-        TagsSuggestionsListView->RequestListRefresh();
-        TagsSuggestionsListView->Invalidate(EInvalidateWidget::Layout);
+        TagSearchBox->RequestListRefresh();
+        TagSearchBox->Invalidate(EInvalidateWidget::Layout);
     }
 }
 
 EVisibility SCreationScreen::GetParamInputBoxVisibility() const
 {
     // If SelectedSuggestion is valid, then it's considered valid parameter and input box should be visible
-    return SelectedSuggestion.IsValid() ? EVisibility::Visible : EVisibility::Collapsed;
+    return SelectedParameterSuggestion.IsValid() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 TSharedRef<SWidget> SCreationScreen::GenerateComboBoxItem(TSharedPtr<FString> Item)
@@ -1105,6 +967,8 @@ void SCreationScreen::OnThirdAPIRequestAttributeNameCompleted(FHttpRequestPtr Re
                                     NewPair.Tag = TagString;
 
                                     TagsList.Add(MakeShared<FPair>(NewPair));
+
+                                    TagFilteredSuggestions.Add(MakeShared<FString>(NewPair.SubCategory + " - " + NewPair.Tag));
                                 }
                             }
 
@@ -1122,6 +986,7 @@ void SCreationScreen::OnThirdAPIRequestAttributeNameCompleted(FHttpRequestPtr Re
                                     NewPair.Tag = TemplateString;  // Using Tag member variable to store the template
 
                                     TagsList.Add(MakeShared<FPair>(NewPair));
+                                    TagFilteredSuggestions.Add(MakeShared<FString>(NewPair.SubCategory + " - " + NewPair.Tag));
                                 }
                             }
 
@@ -1137,6 +1002,7 @@ void SCreationScreen::OnThirdAPIRequestAttributeNameCompleted(FHttpRequestPtr Re
                                         FString ParameterName = ParameterObj->GetStringField("name");
                                         FString AssetParameterCombination = FString::Printf(TEXT("%s/%s"), *AssetName, *ParameterName);
                                         ParameterSuggestions.Add(MakeShared<FString>(AssetParameterCombination));
+                                        ParameterFilteredSuggestions.Add(MakeShared<FString>(AssetParameterCombination));
 
                                         // Extract the range of the parameters if available
                                         if (ParameterObj->HasField("range"))

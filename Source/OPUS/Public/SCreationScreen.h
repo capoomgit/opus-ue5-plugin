@@ -6,6 +6,7 @@
 #include "Widgets/SCompoundWidget.h"
 #include "Http.h"
 #include "EditorNotificationHelper.h"
+#include "SFilteredSelectionTextBox.h"
 
 
 DECLARE_MULTICAST_DELEGATE(FOnQueueScreenEnabled);
@@ -95,11 +96,11 @@ private:
 // ------------------------------
 
 	void OnParamSearchTextChanged(const FText& NewText);
-	TSharedRef<ITableRow> GenerateParamSuggestionRow(TSharedPtr<FString> Suggestion, const TSharedRef<STableViewBase>& OwnerTable);
-	FReply OnParamSuggestionRowClicked(TSharedPtr<FString> Suggestion);
 	void OnTagsSearchTextChanged(const FText& NewText);
-	TSharedRef<ITableRow> GenerateTagSuggestionRow(TSharedPtr<FString> Suggestion, const TSharedRef<STableViewBase>& OwnerTable);
-	FReply OnTagSuggestionRowClicked(TSharedPtr<FString> Suggestion);
+
+	// New SFilteredSelectionTextBox
+	void OnTagSelected(TSharedPtr<FString> SelectedTag);
+	void OnParameterSelected(TSharedPtr<FString> ParameterSelection);
 
 // ------------------------------
 // --- HELPER METHODS -----------
@@ -116,8 +117,8 @@ private:
 	EditorNotificationHelper NotificationHelper;
 
 	// MEMBER VARIABLE DEFINITIONS
-	TMap<FString, FVector2D> ParameterRanges;  // A map to hold parameter names and their ranges.
-	FVector2D CurrentParameterRange;          // To store the range of the currently selected parameter.
+	TMap<FString, FVector2D> ParameterRanges;		// A map to hold parameter names and their ranges.
+	FVector2D CurrentParameterRange;				// To store the range of the currently selected parameter.
 	TSharedPtr<SEditableTextBox> ParamInputBox;
 	FString APIResponseID;
 	FString JobStatus;
@@ -139,20 +140,23 @@ private:
 	//TABLE RELATED
 	TArray<TSharedPtr<FKeywordTableRow>> TableRows;
 	TSharedPtr<SListView<TSharedPtr<FKeywordTableRow>>> TableView;
-	TSharedPtr<FString> SelectedSuggestion;
+	
 
 
 	// MEMBER DEFINITIONS FOR PARAM SEARCHBOX
-	TArray<TSharedPtr<FString>> FilteredSuggestions;
-	TSharedPtr<SEditableText> SearchBox;  // Search bar widget
-	TSharedPtr<SListView<TSharedPtr<FString>>> SuggestionsListView; // Suggestions list view widget
+	TArray<TSharedPtr<FString>> ParameterFilteredSuggestions;
+	TSharedPtr<FString> SelectedParameterSuggestion;
 
 	// Tag searchbox members
 	TArray<TSharedPtr<FString>> TagFilteredSuggestions;
-	TSharedPtr<SEditableText> TagsSearchBox;  // Tags search bar widget
-	TSharedPtr<SListView<TSharedPtr<FString>>> TagsSuggestionsListView; // Tags suggestions list view widget
 	TSharedPtr<FString> SelectedTagSuggestion;
-	TArray<TSharedPtr<FPair>> TagsList; // Source of possible tags
+	TArray<TSharedPtr<FPair>> TagsList;											// Source of possible tags
 	TArray<TSharedPtr<FString>> MainCategoryKeysList;
 	TArray<TSharedPtr<FString>> ParameterSuggestions;
+
+	// Search revamped
+	TSharedPtr<SFilteredSelectionTextBox> TagSearchBox;
+	TSharedPtr<SFilteredSelectionTextBox> ParameterSearchBox;					// Search bar widget
+	TSharedPtr<SSuggestionTextBox> SuggestionBox;
+
 };

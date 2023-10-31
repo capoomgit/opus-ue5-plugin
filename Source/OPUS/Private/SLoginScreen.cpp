@@ -96,6 +96,7 @@ void SLoginScreen::Construct(const FArguments& InArgs)
                                                             [
                                                                 SAssignNew(KeyField, SEditableText)
                                                                     .HintText(LOCTEXT("KeyHint", "                              Please enter your rapid key"))
+                                                                    .IsPassword(true)
                                                                     .OnTextCommitted(this, &SLoginScreen::OnTextCommittedInKeyField)
                                                             ]
                                                     ]
@@ -138,7 +139,7 @@ FReply SLoginScreen::LoginButtonClicked()
     return FReply::Handled();
 }
 
-void SLoginScreen::LogIn(FString apiKey)
+void SLoginScreen::LogIn(FString key)
 {
     // Make API call with Username
     FString Url = "https://opus5.p.rapidapi.com/get_model_names";
@@ -146,20 +147,20 @@ void SLoginScreen::LogIn(FString apiKey)
     HttpRequest->SetURL(Url);
     HttpRequest->SetVerb("GET");
     HttpRequest->SetHeader("Content-Type", "application/json");
-    HttpRequest->SetHeader("X-RapidAPI-Key", apiKey);
+    HttpRequest->SetHeader("X-RapidAPI-Key", key);
     HttpRequest->SetHeader("X-RapidAPI-Host", "opus5.p.rapidapi.com");
 
-    HttpRequest->OnProcessRequestComplete().BindLambda([this, apiKey](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
+    HttpRequest->OnProcessRequestComplete().BindLambda([this, key](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
         {
             if (bWasSuccessful && Response.IsValid() && Response->GetResponseCode() == 200)
             {
-                AsyncTask(ENamedThreads::AnyBackgroundThreadNormalTask, [this, apiKey]()
+                AsyncTask(ENamedThreads::AnyBackgroundThreadNormalTask, [this, key]()
                     {
                         FPlatformProcess::Sleep(2);
 
-                        AsyncTask(ENamedThreads::GameThread, [this, apiKey]()
+                        AsyncTask(ENamedThreads::GameThread, [this, key]()
                             {
-                                SaveKeyToFile(apiKey);
+                                SaveKeyToFile(key);
                                 NotificationHelper.ShowNotificationSuccess(LOCTEXT("ValidKeyNotification", "Logged in successfully!"));
                                 OnLoginSuccessfulDelegate.Broadcast(StoredAPIKey);
                                 
@@ -202,6 +203,12 @@ void SLoginScreen::SaveKeyToFile(FString key)
     FString SaveFilePath = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("OPUSAPIKey.txt"));
     FFileHelper::SaveStringToFile(key, *SaveFilePath);
     FFileHelper::LoadFileToString(StoredAPIKey, *SaveFilePath);
+}
+
+void SLoginScreen::LogOut() 
+{
+    StoredAPIKey.Empty();
+    RemoveKeyFile();
 }
 
 void SLoginScreen::RemoveKeyFile() 

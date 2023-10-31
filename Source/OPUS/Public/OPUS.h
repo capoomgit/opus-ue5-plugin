@@ -34,13 +34,17 @@ public:
 	void PluginButtonClicked();
 
 private:
-
+	// Application
 	void RegisterMenus();
 	void CreateWindow();
+
+	// Screens
 	void ShowScreen(OPUSScreenState screen);
 	void ShowLoginScreen();
 	void ShowCreationScreen();
 	void ShowQueueScreen();
+
+	// Memory Management
 	void CleanUp();
 
 	// Register Screens
@@ -56,6 +60,7 @@ private:
 	void OnWindowClosed();
 
 private:
+	// Application
 	TSharedPtr<class FUICommandList> PluginCommands;
 
 	// Screens
@@ -65,8 +70,11 @@ private:
 	TSharedPtr<class SQueueScreen> QueueScreen;
 	OPUSScreenState CurrentScreenState;
 
+	// Login
 	FString CurrentAPIKey;
 	bool IsLoggedIn = false;
+
+	// Editor Notifications
 	EditorNotificationHelper NotificationHelper;
 
 	
