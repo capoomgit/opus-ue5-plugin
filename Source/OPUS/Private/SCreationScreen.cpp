@@ -21,13 +21,11 @@
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SCreationScreen::Construct(const FArguments& InArgs)
 {
-	APIKey = InArgs._APIKey;
+    APIKey = InArgs._APIKey;
     CurrentModel = MakeShared<FString>(TEXT("Loading..."));
     ParameterFilteredSuggestions.Empty();
     ParameterSuggestions.Empty();
     TagFilteredSuggestions.Empty();
-    
-
 
     ChildSlot
         [
@@ -37,7 +35,7 @@ void SCreationScreen::Construct(const FArguments& InArgs)
                 + SOverlay::Slot()
                 .VAlign(VAlign_Top)
                 .HAlign(HAlign_Right)
-                .Padding(0, 0, 10, 0)
+                .Padding(0, 0, 30, 0)
                 [
                     SNew(SButton)
                         .Text(LOCTEXT("LogoutButton", "Logout 🚪"))
@@ -48,255 +46,275 @@ void SCreationScreen::Construct(const FArguments& InArgs)
                 + SOverlay::Slot()
                 .VAlign(VAlign_Top)
                 .HAlign(HAlign_Right)
-                .Padding(0, 0, 95, 0)
+                .Padding(0, 0, 140, 0)
                 [
                     SNew(SButton)
                         .Text(LOCTEXT("JobQueueButton", "Job Queue ↡"))
                         .OnClicked(this, &SCreationScreen::QueueButtonClicked)
                 ]
-                
+
                 + SOverlay::Slot()
                 .VAlign(VAlign_Fill)
                 .HAlign(HAlign_Fill)
                 [
-                    
-                    SNew(SVerticalBox)
 
-                        + SVerticalBox::Slot()
-                        .AutoHeight()
-                        .Padding(30, 0, 200, 0)
+                    SNew(SHorizontalBox)
+
+
+                        + SHorizontalBox::Slot()
+                        .AutoWidth()
                         [
-                            SNew(STextBlock)
-                                .Text(LOCTEXT("Select Model", "Please select a model to generate."))
-                        ]
+                            SNew(SVerticalBox)
 
-                        // Component selection combo box
-                        + SVerticalBox::Slot()
-                        .AutoHeight()
-                        .Padding(0, 20, 0, 0)
-                        [
-                            SNew(SHorizontalBox)
-
-                                + SHorizontalBox::Slot()
-                                .AutoWidth()
-                                .Padding(30, 0, 0, 0)
+                                + SVerticalBox::Slot()
+                                .AutoHeight()
+                                .Padding(30, 40, 200, 0)
                                 [
-                                    SNew(SBox)
-                                        .WidthOverride(120)
+                                    SNew(STextBlock)
+                                        .Text(LOCTEXT("Select Model", "Please select a model to generate."))
+                                ]
+
+                                // Component selection combo box
+                                + SVerticalBox::Slot()
+                                .AutoHeight()
+                                .Padding(30, 20, 30, 0)
+                                [
+
+                                    SNew(SHorizontalBox)
+
+                                        + SHorizontalBox::Slot()
+                                        .AutoWidth()
                                         [
-                                            SAssignNew(ModelComboBox, SComboBox<TSharedPtr<FString>>)
-                                                .OptionsSource(&ModelOptions)
-                                                .OnGenerateWidget(this, &SCreationScreen::GenerateComboBoxItem)
-                                                .OnSelectionChanged(this, &SCreationScreen::ComboBoxSelectionChanged)
-                                                .InitiallySelectedItem(CurrentModel)
-                                                .ContentPadding(FMargin(2.0f))
+                                            SNew(SBox)
+                                                .WidthOverride(120)
                                                 [
-                                                    SNew(STextBlock)
-                                                        .Text(this, &SCreationScreen::GetCurrentItem)
+                                                    SAssignNew(ModelComboBox, SComboBox<TSharedPtr<FString>>)
+                                                        .OptionsSource(&ModelOptions)
+                                                        .OnGenerateWidget(this, &SCreationScreen::GenerateComboBoxItem)
+                                                        .OnSelectionChanged(this, &SCreationScreen::ComboBoxSelectionChanged)
+                                                        .InitiallySelectedItem(CurrentModel)
+                                                        .ContentPadding(FMargin(2.0f))
+                                                        [
+                                                            SNew(STextBlock)
+                                                                .Text(this, &SCreationScreen::GetCurrentItem)
+                                                        ]
+                                                ]
+                                        ]
+
+                                        + SHorizontalBox::Slot()
+                                        .AutoWidth()
+                                        .Padding(30, 0, 0, 0)
+                                        [
+                                            SNew(SCheckBox)
+                                                .OnCheckStateChanged_Lambda([this](ECheckBoxState NewState) {
+                                                if (NewState == ECheckBoxState::Checked) {
+                                                    IsFBXSelected = true;
+                                                    IsGLTFSelected = false;
+                                                }
+                                                    })
+                                                .IsChecked_Lambda([this]() -> ECheckBoxState {
+                                                        return IsFBXSelected ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+                                                    })
+                                                        [
+                                                            SNew(STextBlock).Text(LOCTEXT("FBX", "FBX"))
+                                                        ]
+                                        ]
+
+                                        + SHorizontalBox::Slot()
+                                        .AutoWidth()
+                                        .Padding(30, 0, 0, 0)
+                                        [
+                                            SNew(SCheckBox)
+                                                .OnCheckStateChanged_Lambda([this](ECheckBoxState NewState) {
+                                                if (NewState == ECheckBoxState::Checked) {
+                                                    IsGLTFSelected = true;
+                                                    IsFBXSelected = false;
+                                                }
+                                                    })
+                                                .IsChecked_Lambda([this]() -> ECheckBoxState {
+                                                        return IsGLTFSelected ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+                                                    })
+                                                        [
+                                                            SNew(STextBlock).Text(LOCTEXT("GLTF", "GLTF"))
+                                                        ]
+                                        ]
+                                ]
+
+                                + SVerticalBox::Slot()
+                                .AutoHeight()
+                                .Padding(30, 20, 0, 0)
+                                [
+                                    SNew(STextBlock)
+                                        .Text(LOCTEXT("Select preset", "Select a model preset"))
+                                ]
+
+                                // Tag Search Box
+                                + SVerticalBox::Slot()
+                                .AutoHeight()
+                                .Padding(30, 10, 30, 0)
+                                [
+                                    SAssignNew(TagSearchBox, SFilteredSelectionTextBox)
+                                        .ListItemsSource(&TagFilteredSuggestions)
+                                        .OnTextChanged(this, &SCreationScreen::OnTagsSearchTextChanged)
+                                ]
+
+                                + SVerticalBox::Slot()
+                                .AutoHeight()
+                                .Padding(30, 20, 0, 0)
+                                [
+                                    SNew(STextBlock)
+                                        .Text(LOCTEXT("Parameter Customization", "Parameter customizaztion"))
+                                ]
+
+                                // Parameter Search Box
+                                + SVerticalBox::Slot()
+                                .AutoHeight()
+                                .Padding(30, 10, 30, 0)
+                                [
+                                    SAssignNew(ParameterSearchBox, SFilteredSelectionTextBox)
+                                        .ListItemsSource(&ParameterFilteredSuggestions)
+                                        .OnTextChanged(this, &SCreationScreen::OnParamSearchTextChanged)
+                                ]
+
+                                + SVerticalBox::Slot()
+                                .AutoHeight()
+                                .Padding(30, 10, 30, 0)
+                                [
+                                    SNew(SHorizontalBox)
+
+                                        + SHorizontalBox::Slot()
+                                        .AutoWidth()
+                                        [
+                                            SNew(SBox)
+                                                .WidthOverride(130)  // Adjusted width
+                                                .HeightOverride(50)  // Adjusted height
+                                                [
+                                                    SAssignNew(ParamInputBox, SEditableTextBox)
+                                                        .HintText(this, &SCreationScreen::GetParamHintText)
+                                                        //.Visibility(this, &SCreationScreen::GetParamInputBoxVisibility)
+                                                ]
+                                        ]
+
+                                        + SHorizontalBox::Slot()
+                                        .HAlign(HAlign_Right)
+                                        .AutoWidth()
+                                        .Padding(20, 0, 0, 0)
+                                        [
+                                            SNew(SBox)
+                                                .WidthOverride(115)  // Adjusted button width
+                                                .HeightOverride(50)  // Adjusted button height
+                                                [
+                                                    SNew(SButton)
+                                                        .VAlign(VAlign_Center)
+                                                        .HAlign(HAlign_Center)
+                                                        .Text(LOCTEXT("ApplyFeatureButton", "Apply 🛠️"))
+                                                        .OnClicked(this, &SCreationScreen::ApplyFeatureButtonClicked)
+                                                        .Visibility(EVisibility::Visible) // Always visible
+                                                ]
+                                        ]
+
+                                        + SHorizontalBox::Slot()
+                                        .HAlign(HAlign_Right)
+                                        .AutoWidth()
+                                        .Padding(20, 0, 0, 0)
+                                        [
+                                            SNew(SBox)
+                                                .WidthOverride(115)  // Adjusted button width
+                                                .HeightOverride(50)  // Adjusted button height
+                                                [
+                                                    SNew(SButton)
+                                                        .VAlign(VAlign_Center)
+                                                        .HAlign(HAlign_Center)
+                                                        .Text(LOCTEXT("ResetFeaturesButton", "Reset 🧹"))
+                                                        .OnClicked(this, &SCreationScreen::ResetFeaturesButtonClicked)
+                                                        .Visibility(EVisibility::Visible) // Always visible
                                                 ]
                                         ]
                                 ]
 
-                                + SHorizontalBox::Slot()
-                                .AutoWidth()
-                                .Padding(60, 0, 0, 0)
+                                + SVerticalBox::Slot()
+                                .AutoHeight()
+                                .Padding(30, 10, 30, 0)
+                                [
+                                    SNew(SScrollBox)
+                                        + SScrollBox::Slot()
+                                        [
+                                            SNew(SBox)
+                                                .WidthOverride(300) // Adjust this based on your needs
+                                                .HeightOverride(200) // Adjust this based on your needs
+                                                [
+                                                    SNew(SBorder)
+                                                        .BorderImage(FCoreStyle::Get().GetBrush("GenericWhiteBox"))
+                                                        .BorderBackgroundColor(FLinearColor::Black)
+                                                        .Padding(FMargin(1))
+                                                        [
+                                                            SAssignNew(TableView, SListView<TSharedPtr<FKeywordTableRow>>)
+                                                                .ItemHeight(24)
+                                                                .ListItemsSource(&TableRows)
+                                                                .OnGenerateRow(this, &SCreationScreen::GenerateTableRow)
+                                                                .SelectionMode(ESelectionMode::Single)
+                                                                .HeaderRow
+                                                                (
+                                                                    SNew(SHeaderRow)
+                                                                    + SHeaderRow::Column("FeaturesColumn")
+                                                                    .DefaultLabel(LOCTEXT("FeaturesColumnHeader", "Features"))
+                                                                    .FillWidth(0.7f)
+
+                                                                    + SHeaderRow::Column("InputColumn")
+                                                                    .DefaultLabel(LOCTEXT("InputColumnHeader", "Input"))
+                                                                    .FillWidth(0.3f)
+                                                                )
+                                                        ]
+                                                ]
+                                        ]
+                                ]
+
+                                + SVerticalBox::Slot()
+                                .VAlign(VAlign_Bottom)
+                                .HAlign(HAlign_Center)
+                                .AutoHeight()
+                                .Padding(0, 10, 0, 0)
                                 [
                                     SNew(SBox)
-                                        .WidthOverride(120)
+                                        .WidthOverride(130)
+                                        .HeightOverride(50)
                                         [
                                             SNew(SButton)
                                                 .VAlign(VAlign_Center)
                                                 .HAlign(HAlign_Center)
-                                                .Text(LOCTEXT("Button", "Create ⚙️"))
+                                                .Text(LOCTEXT("Generate Model", "Generate Model"))
                                                 .OnClicked(this, &SCreationScreen::CreateButtonClicked)
+                                                .ButtonColorAndOpacity(FLinearColor(0.1,1,0.1,1))
                                         ]
                                 ]
+                        ]
 
-                                + SHorizontalBox::Slot()
-                                .AutoWidth()
-                                [
-                                    SNew(SSpacer)
-                                        .Size(FVector2D(95, 0))
-                                ]
+                        + SHorizontalBox::Slot()
+                        .AutoWidth()
+                        [
+                            SNew(SVerticalBox)
 
-                                + SHorizontalBox::Slot()
-                                .AutoWidth()
-                                .Padding(0, 0, 10, 0)
+                                + SVerticalBox::Slot()
+                                .AutoHeight()
+                                .Padding(0, 70, 30, 0)
                                 [
-                                    SNew(SBox)
+
+                                    SNew(SBorder)
+                                        .BorderImage(FCoreStyle::Get().GetBrush("Border"))
+                                        .BorderBackgroundColor(FLinearColor::White)
+                                        .Padding(FMargin(5.0f))
                                         [
-                                            SNew(SImage)
-                                                .Image(FOPUSStyle::Get().GetBrush("OPUS.SmallLogo"))
-                                        ]
-                                ]    
-                        ]
-                        
-
-                        + SVerticalBox::Slot()
-                        .AutoHeight()
-                        .Padding(30, 20, 0, 0)
-                        [
-                            SNew(STextBlock)
-                                .Text(LOCTEXT("Select preset", "Select a model preset"))
-                        ]
-
-                        // Tag Search Box
-                        + SVerticalBox::Slot()
-                        .AutoHeight()
-                        .Padding(30, 10, 30, 0)
-                        [
-                            SAssignNew(TagSearchBox, SFilteredSelectionTextBox)
-                                .ListItemsSource(&TagFilteredSuggestions)
-                                .OnTextChanged(this, &SCreationScreen::OnTagsSearchTextChanged)
-                        ]
-
-                        + SVerticalBox::Slot()
-                        .AutoHeight()
-                        .Padding(30, 20, 0, 0)
-                        [
-                            SNew(STextBlock)
-                                .Text(LOCTEXT("SearchLabel", "Search for Parameters"))
-                        ]
-
-                        + SVerticalBox::Slot()
-                        .AutoHeight()
-                        .Padding(30, 10, 30, 0)
-                        [
-                            SAssignNew(ParameterSearchBox, SFilteredSelectionTextBox)
-                                .ListItemsSource(&ParameterFilteredSuggestions)
-                                .OnTextChanged(this, &SCreationScreen::OnParamSearchTextChanged)
-                        ]
-
-                        + SVerticalBox::Slot()
-                        .AutoHeight()
-                        .Padding(30, 10, 649, 0)
-                        [
-                            SNew(SHorizontalBox)
-
-                                + SHorizontalBox::Slot()
-                                .AutoWidth()
-                                .Padding(10, 0, 10, 0)
-                                [
-                                    SNew(SBox)
-                                        .WidthOverride(130)  // Adjusted width
-                                        .HeightOverride(80)  // Adjusted height
-                                        [
-                                            SAssignNew(ParamInputBox, SEditableTextBox)
-                                                .HintText(this, &SCreationScreen::GetParamHintText)
-                                                .Visibility(this, &SCreationScreen::GetParamInputBoxVisibility)
-                                        ]
-                                ]
-
-                                + SHorizontalBox::Slot()
-                                .AutoWidth()
-                                .Padding(50, 0, 0, 0)
-                                [
-                                    SNew(SBox)
-                                        .WidthOverride(120)  // Adjusted button width
-                                        .HeightOverride(80)  // Adjusted button height
-                                        [
-                                            SNew(SButton)
-                                                .VAlign(VAlign_Center)
-                                                .HAlign(HAlign_Center)
-                                                .Text(LOCTEXT("ApplyFeatureButton", "Apply 🛠️"))
-                                                .OnClicked(this, &SCreationScreen::ApplyFeatureButtonClicked)
-                                                .Visibility(EVisibility::Visible) // Always visible
-                                        ]
-                                ]
-
-                                + SHorizontalBox::Slot()
-                                .AutoWidth()
-                                .Padding(30, 0, 0, 0)
-                                [
-                                    SNew(SBox)
-                                        .WidthOverride(120)
-                                        .HeightOverride(80)
-                                        [
-                                            SNew(SButton)
-                                                .VAlign(VAlign_Center)
-                                                .HAlign(HAlign_Center)
-                                                .Text(LOCTEXT("ResetFeaturesButton", "Reset  🧹"))
-                                                .OnClicked(this, &SCreationScreen::ResetFeaturesButtonClicked)
-                                                .Visibility(EVisibility::Visible) // Always visible
-                                        ]
-                                ]
-
-                                + SHorizontalBox::Slot()
-                                .AutoWidth()
-                                .Padding(110, 0, 10, 0)
-                                [
-                                    SNew(SCheckBox)
-                                        .OnCheckStateChanged_Lambda([this](ECheckBoxState NewState) {
-                                        if (NewState == ECheckBoxState::Checked) {
-                                            IsFBXSelected = true;
-                                            IsGLTFSelected = false;
-                                        }
-                                            })
-                                        .IsChecked_Lambda([this]() -> ECheckBoxState {
-                                                return IsFBXSelected ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-                                            })
+                                            SNew(SBox)
+                                            .WidthOverride(300)
+                                            .HeightOverride(300)
                                                 [
-                                                    SNew(STextBlock).Text(LOCTEXT("FBX", "FBX"))
-                                                ]
-                                ]
-
-                                + SHorizontalBox::Slot()
-                                .AutoWidth()
-                                .Padding(15, 0, 10, 0)
-                                [
-                                    SNew(SCheckBox)
-                                        .OnCheckStateChanged_Lambda([this](ECheckBoxState NewState) {
-                                        if (NewState == ECheckBoxState::Checked) {
-                                            IsGLTFSelected = true;
-                                            IsFBXSelected = false;
-                                        }
-                                            })
-                                        .IsChecked_Lambda([this]() -> ECheckBoxState {
-                                                return IsGLTFSelected ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-                                            })
-                                                [
-                                                    SNew(STextBlock).Text(LOCTEXT("GLTF", "GLTF"))
-                                                ]
-                                ]
-                        ]
-
-                        + SVerticalBox::Slot()
-                        .AutoHeight()
-                        .Padding(30, 10, 30, 0)
-                        [
-                            SNew(SScrollBox)
-                                + SScrollBox::Slot()
-                                [
-                                    SNew(SBox)
-                                        .WidthOverride(100) // Adjust this based on your needs
-                                        .HeightOverride(130) // Adjust this based on your needs
-                                        [
-                                            SNew(SBorder)
-                                                .BorderImage(FCoreStyle::Get().GetBrush("GenericWhiteBox"))
-                                                .BorderBackgroundColor(FLinearColor::Black)
-                                                .Padding(FMargin(1))
-                                                [
-                                                    SAssignNew(TableView, SListView<TSharedPtr<FKeywordTableRow>>)
-                                                        .ItemHeight(24)
-                                                        .ListItemsSource(&TableRows)
-                                                        .OnGenerateRow(this, &SCreationScreen::GenerateTableRow)
-                                                        .SelectionMode(ESelectionMode::Single)
-                                                        .HeaderRow
-                                                        (
-                                                            SNew(SHeaderRow)
-                                                            + SHeaderRow::Column("FeaturesColumn")
-                                                            .DefaultLabel(LOCTEXT("FeaturesColumnHeader", "Features"))
-                                                            .FillWidth(0.5f)
-
-                                                            + SHeaderRow::Column("InputColumn")
-                                                            .DefaultLabel(LOCTEXT("InputColumnHeader", "Input"))
-                                                            .FillWidth(0.5f)
-                                                        )
+                                                    SNew(SImage)
+                                                        .Image(FOPUSStyle::Get().GetBrush("OPUS.SmallLogo"))
                                                 ]
                                         ]
                                 ]
                         ]
-                ]
+                  ]
 	];
 
     AsyncTask(ENamedThreads::AnyBackgroundThreadNormalTask, [this]()
@@ -342,160 +360,119 @@ FReply SCreationScreen::CreateButtonClicked()
     return FReply::Handled();
 }
 
-FReply SCreationScreen::ShowWarningWindow(FString warningMessage) 
+void SCreationScreen::ParseTagInput(const FText& TagInputText)
 {
-    TSharedPtr<SWindow> WarningWindowPtr; // Declare a shared pointer
-    TSharedRef<SWindow> WarningWindow = SNew(SWindow)
-        .Title(LOCTEXT("WarningTitle", "Warning"))
-        .ClientSize(FVector2D(600, 150))
-        .IsInitiallyMaximized(false);
+    FString TagBoxContent = TagInputText.ToString();
+    TArray<FString> ParsedStrings;
 
-    WarningWindowPtr = WarningWindow; // Store the window in the shared pointer
+    bool bFound = false;
 
-    // dont make this come up every time
-    FSlateApplication::Get().AddWindowAsNativeChild(WarningWindow, FSlateApplication::Get().GetActiveTopLevelWindow().ToSharedRef());
+    if (TagBoxContent.ParseIntoArray(ParsedStrings, TEXT(" - "), true) == 2)
+    {
+        TSharedPtr<FString> MainCategory = MakeShared<FString>(ParsedStrings[0].TrimStartAndEnd());
+        TSharedPtr<FString> CurrentTag = MakeShared<FString>(ParsedStrings[1].TrimStartAndEnd());
 
-    WarningWindow->SetContent(
-        SNew(SVerticalBox)
+        for (TSharedPtr<FKeywordTableRow>& existingRow : TableRows)
+        {
+            if (existingRow->Keyword->Equals(*MainCategory))
+            {
+                if (IsParameter(*MainCategory))  // Assuming IsParameter checks if it's a parameter
+                {
+                    existingRow->Value = CurrentTag;  // Update the value only
+                    bFound = true;
+                    break;
+                }
+                else // Check for non-parameter type
+                {
+                    if (existingRow->Value->Equals(*CurrentTag))
+                    {
+                        // Skip adding if a row with same keyword and value already exists
+                        bFound = true;
+                        break;
+                    }
+                }
+            }
+        }
 
-        + SVerticalBox::Slot()
-        .AutoHeight()
-        .Padding(15)
-        [
-            SNew(STextBlock)
-                //TODO: this text needs to be changed in order to be clear
-                .Text(FText::FromString(warningMessage))
-                .Justification(ETextJustify::Center)
-        ]
+        if (!bFound)
+        {
+            // Add new row if tag doesnt exist in table
+            TSharedPtr<FKeywordTableRow> newRow = MakeShared<FKeywordTableRow>();
+            newRow->Keyword = MainCategory;
+            newRow->Value = CurrentTag;
+            TableRows.Add(newRow);
+            UE_LOG(LogTemp, Warning, TEXT("New Row Added! Main Category: %s, Tag: %s"), **newRow->Keyword, **newRow->Value);
+        }
 
-        + SVerticalBox::Slot()
-        .AutoHeight()
-        .HAlign(HAlign_Center)
-        .Padding(15)
-        [
-            SNew(SHorizontalBox)
+        TableView->RequestListRefresh();
+        TableView->Invalidate(EInvalidateWidget::LayoutAndVolatility);
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("The TagsSearchBox content format is invalid!"));
+    }
+}
 
-                + SHorizontalBox::Slot()
-                .AutoWidth()
-                [
-                    //SUGGESTION: this button may direct the user to QUEUE screen
-                    SNew(SButton)
-                        .Text(LOCTEXT("OKButton", "OK"))
-                        .OnClicked_Lambda([this, WarningWindowPtr]() 
-                        {
-                            if (WarningWindowPtr.IsValid())
-                            {
-                                WarningWindowPtr->RequestDestroyWindow();
-                            }
-                            return FReply::Handled();
-                        })
-                ]
-        ]);
-    return FReply::Handled();
+void SCreationScreen::ParseParameterInput(const FText& ParameterInputText)
+{
+    bool bFoundParam = false;
+    FString ParamInputContent = ParameterInputText.ToString();
+    float InputValue;
+    //TODO: this section must be revised to a proper try-catch structure
+    if (FDefaultValueHelper::ParseFloat(ParamInputContent, InputValue))
+    {
+        if (InputValue >= CurrentParameterRange.X && InputValue <= CurrentParameterRange.Y)
+        {
+            for (TSharedPtr<FKeywordTableRow>& existingRow : TableRows)
+            {
+                if (existingRow->Keyword->Equals(*SelectedParameterSuggestion))
+                {
+                    existingRow->Value = MakeShared<FString>(ParamInputContent);
+                    bFoundParam = true;
+                    break;
+                }
+            }
+
+            if (!bFoundParam)
+            {
+                TSharedPtr<FKeywordTableRow> newRow = MakeShared<FKeywordTableRow>();
+                newRow->Keyword = SelectedParameterSuggestion;
+                newRow->Value = MakeShared<FString>(ParamInputContent);
+                TableRows.Add(newRow);
+                UE_LOG(LogTemp, Warning, TEXT("New Parameter Row Added! Parameter: %s, Value: %s"), **newRow->Keyword, **newRow->Value);
+            }
+        }
+        else
+        {
+            NotificationHelper.ShowNotificationFail(LOCTEXT("InvalidInputNotification", "The input is not in range!"));
+        }
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("The input for the parameter is not a valid number!"));
+    }
 }
 
 FReply SCreationScreen::ApplyFeatureButtonClicked()
 {
     UE_LOG(LogTemp, Warning, TEXT("ApplyFeatureButtonClicked called!"));
 
-    bool bAddNewRow = false;
-
-    // TODO Too many nested ifs, make it leaner
-
     if (TagSearchBox.IsValid())
     {
-        FString TagBoxContent = TagSearchBox->GetText().ToString();
-        TArray<FString> ParsedStrings;
-
-        bool bFound = false;
-
-        if (TagBoxContent.ParseIntoArray(ParsedStrings, TEXT(" - "), true) == 2)
-        {
-            TSharedPtr<FString> MainCategory = MakeShared<FString>(ParsedStrings[0].TrimStartAndEnd());
-            TSharedPtr<FString> CurrentTag = MakeShared<FString>(ParsedStrings[1].TrimStartAndEnd());
-
-            for (TSharedPtr<FKeywordTableRow>& existingRow : TableRows)
-            {
-                if (existingRow->Keyword->Equals(*MainCategory))
-                {
-                    if (IsParameter(*MainCategory))  // Assuming IsParameter checks if it's a parameter
-                    {
-                        existingRow->Value = CurrentTag;  // Update the value only
-                        bFound = true;
-                        break;
-                    }
-                    else // Check for non-parameter type
-                    {
-                        if (existingRow->Value->Equals(*CurrentTag))
-                        {
-                            // Skip adding if a row with same keyword and value already exists
-                            bFound = true;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            if (!bFound)
-            {
-                // Add new row for either parameter or non-parameter if not found
-                TSharedPtr<FKeywordTableRow> newRow = MakeShared<FKeywordTableRow>();
-                newRow->Keyword = MainCategory;
-                newRow->Value = CurrentTag;
-                TableRows.Add(newRow);
-                UE_LOG(LogTemp, Warning, TEXT("New Row Added! Main Category: %s, Tag: %s"), **newRow->Keyword, **newRow->Value);
-            }
-
-            TableView->RequestListRefresh();
-            TableView->Invalidate(EInvalidateWidget::LayoutAndVolatility);
-        }
-        else
-        {
-            UE_LOG(LogTemp, Warning, TEXT("The TagsSearchBox content format is invalid!"));
-        }
+        ParseTagInput(TagSearchBox->GetText());
     }
-
-    bool bFoundParam = false;
 
     // Handling for ParamInputBox
     if (SelectedParameterSuggestion.IsValid() && CurrentParameterRange != FVector2D::ZeroVector)
     {
-        FString ParamInputContent = ParamInputBox->GetText().ToString();
-        float InputValue;
-        //TODO: this section must be revised to a proper try-catch structure
-        if (FDefaultValueHelper::ParseFloat(ParamInputContent, InputValue))
-        {
-            if (InputValue >= CurrentParameterRange.X && InputValue <= CurrentParameterRange.Y)
-            {
-                for (TSharedPtr<FKeywordTableRow>& existingRow : TableRows)
-                {
-                    if (existingRow->Keyword->Equals(*SelectedParameterSuggestion))
-                    {
-                        existingRow->Value = MakeShared<FString>(ParamInputContent);
-                        bFoundParam = true;
-                        break;
-                    }
-                }
-
-                if (!bFoundParam)
-                {
-                    TSharedPtr<FKeywordTableRow> newRow = MakeShared<FKeywordTableRow>();
-                    newRow->Keyword = SelectedParameterSuggestion;
-                    newRow->Value = MakeShared<FString>(ParamInputContent);
-                    TableRows.Add(newRow);
-                    UE_LOG(LogTemp, Warning, TEXT("New Parameter Row Added! Parameter: %s, Value: %s"), **newRow->Keyword, **newRow->Value);
-                }
-            }
-            else
-            {
-                NotificationHelper.ShowNotificationFail(LOCTEXT("InvalidInputNotification", "The input is not in range!"));
-            }
-        }
-        else
-        {
-            UE_LOG(LogTemp, Warning, TEXT("The input for the parameter is not a valid number!"));
-        }
+        ParseParameterInput(ParamInputBox->GetText());
     }
+
+    // Clear selection
+    SelectedTagSuggestion = nullptr;
+    SelectedParameterSuggestion = nullptr;
+    TagSearchBox->SetText(FText::GetEmpty());
+    ParameterSearchBox->SetText(FText::GetEmpty());
 
     TableView->RequestListRefresh();
     TableView->Invalidate(EInvalidateWidget::LayoutAndVolatility);
@@ -540,11 +517,6 @@ void SCreationScreen::OnTagsSearchTextChanged(const FText& NewText)
     TagSearchBox->RequestListRefresh();
 }
 
-void SCreationScreen::OnTagSelected(TSharedPtr<FString> TagSelection)
-{
-    SelectedTagSuggestion = TagSelection;
-}
-
 void SCreationScreen::OnParamSearchTextChanged(const FText& NewText)
 {
     ParameterFilteredSuggestions.Empty();
@@ -561,7 +533,6 @@ void SCreationScreen::OnParamSearchTextChanged(const FText& NewText)
     }
 
     ParamInputBox->SetText(FText::GetEmpty());
-
     
     for (const TSharedPtr<FString>& Suggestion : ParameterSuggestions)
     {
@@ -573,6 +544,11 @@ void SCreationScreen::OnParamSearchTextChanged(const FText& NewText)
 
     // Refresh the list view
     ParameterSearchBox->RequestListRefresh();
+}
+
+void SCreationScreen::OnTagSelected(TSharedPtr<FString> TagSelection)
+{
+    SelectedTagSuggestion = TagSelection;
 }
 
 void SCreationScreen::OnParameterSelected(TSharedPtr<FString> ParameterSelection)
@@ -603,7 +579,7 @@ TSharedRef<ITableRow> SCreationScreen::GenerateTableRow(TSharedPtr<FKeywordTable
 
                 // Keyword column
                 + SHorizontalBox::Slot()
-                .FillWidth(1.14)
+                .FillWidth(1.5)
                 [
                     SNew(STextBlock)
                         .Text(FText::FromString(*(RowData->Keyword)))
@@ -611,7 +587,7 @@ TSharedRef<ITableRow> SCreationScreen::GenerateTableRow(TSharedPtr<FKeywordTable
 
                 // Value column
                 + SHorizontalBox::Slot()
-                .FillWidth(1)
+                .AutoWidth()
                 [
                     SNew(STextBlock)
                         .Text(this, &SCreationScreen::GetKeywordValue, RowData)
@@ -665,11 +641,13 @@ FText SCreationScreen::GetParamHintText() const
 {
     if (CurrentParameterRange != FVector2D::ZeroVector)
     {
-        return FText::Format(LOCTEXT("ParamRangeHint", "Range: {0} - {1}"), FText::AsNumber(CurrentParameterRange.X), FText::AsNumber(CurrentParameterRange.Y));
+        FString RangeLow = FString::SanitizeFloat(CurrentParameterRange.X);
+        FString RangeHigh = FString::SanitizeFloat(CurrentParameterRange.Y);
+        return FText::Format(LOCTEXT("ParamRangeHint", "Range: {0} - {1}"), FText::FromString(RangeLow), FText::FromString(RangeHigh));
     }
     else
     {
-        return LOCTEXT("NoRangeHint", "No range provided");
+        return LOCTEXT("Param Value", "Parameter value");
     }
 }
 
@@ -682,12 +660,12 @@ void SCreationScreen::ComboBoxSelectionChanged(TSharedPtr<FString> NewItem, ESel
         // Clear the search boxes
         if (ParameterSearchBox.IsValid())
         {
-            ParameterSearchBox->SetText(FText::GetEmpty());
+            //ParameterSearchBox->SetText(FText::GetEmpty());
         }
 
         if (TagSearchBox.IsValid())
         {
-            TagSearchBox->SetText(FText::GetEmpty());
+            //TagSearchBox->SetText(FText::GetEmpty());
         }
 
         // Clear the filtered suggestion lists (assuming you still want this)
@@ -708,6 +686,59 @@ void SCreationScreen::ComboBoxSelectionChanged(TSharedPtr<FString> NewItem, ESel
     }
 }
 
+FReply SCreationScreen::ShowWarningWindow(FString warningMessage)
+{
+    TSharedPtr<SWindow> WarningWindowPtr; // Declare a shared pointer
+    TSharedRef<SWindow> WarningWindow = SNew(SWindow)
+        .Title(LOCTEXT("WarningTitle", "Warning"))
+        .ClientSize(FVector2D(600, 150))
+        .IsInitiallyMaximized(false);
+
+    WarningWindowPtr = WarningWindow; // Store the window in the shared pointer
+
+    // dont make this come up every time
+    FSlateApplication::Get().AddWindowAsNativeChild(WarningWindow, FSlateApplication::Get().GetActiveTopLevelWindow().ToSharedRef());
+
+    WarningWindow->SetContent(
+        SNew(SVerticalBox)
+
+        + SVerticalBox::Slot()
+        .AutoHeight()
+        .Padding(15)
+        [
+            SNew(STextBlock)
+                //TODO: this text needs to be changed in order to be clear
+                .Text(FText::FromString(warningMessage))
+                .Justification(ETextJustify::Center)
+        ]
+
+        + SVerticalBox::Slot()
+        .AutoHeight()
+        .HAlign(HAlign_Center)
+        .Padding(15)
+        [
+            SNew(SHorizontalBox)
+
+                + SHorizontalBox::Slot()
+                .AutoWidth()
+                [
+                    //SUGGESTION: this button may direct the user to QUEUE screen
+                    SNew(SButton)
+                        .Text(LOCTEXT("OKButton", "OK"))
+                        .OnClicked_Lambda([this, WarningWindowPtr]()
+                            {
+                                if (WarningWindowPtr.IsValid())
+                                {
+                                    WarningWindowPtr->RequestDestroyWindow();
+                                }
+                                return FReply::Handled();
+                            })
+                ]
+        ]);
+    return FReply::Handled();
+}
+
+// Deprecated
 EVisibility SCreationScreen::GetParamInputBoxVisibility() const
 {
     // If SelectedSuggestion is valid, then it's considered valid parameter and input box should be visible

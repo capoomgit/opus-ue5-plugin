@@ -97,6 +97,8 @@ private:
 
 	void OnParamSearchTextChanged(const FText& NewText);
 	void OnTagsSearchTextChanged(const FText& NewText);
+	void ParseTagInput(const FText& TagInputText);
+	void ParseParameterInput(const FText& TagInputText);
 
 	// New SFilteredSelectionTextBox
 	void OnTagSelected(TSharedPtr<FString> SelectedTag);
@@ -157,6 +159,4 @@ private:
 	// Search revamped
 	TSharedPtr<SFilteredSelectionTextBox> TagSearchBox;
 	TSharedPtr<SFilteredSelectionTextBox> ParameterSearchBox;					// Search bar widget
-	TSharedPtr<SSuggestionTextBox> SuggestionBox;
-
 };

@@ -42,6 +42,10 @@ public:
 			: Job(InJob), DateTime(InDateTime), Status(InStatus), JobID(InJobID), DownloadLink(InDownloadLink) {}
 	};
 
+public:
+	bool GetQueueLoopEnabled();
+	void SetQueueLoopEnabled(bool Enable);
+
 private:
 	// Queue logic methods
 	void QueueLoop();
@@ -69,6 +73,7 @@ private:
 
 	FString APIKey;
 	FString SecondAPILink;
+	bool IsQueueLoopEnabled = false;
 
 	bool IsFBXSelected = true;
 	EditorNotificationHelper NotificationHelper;

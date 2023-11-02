@@ -41,7 +41,8 @@ void FOPUSModule::StartupModule()
 void FOPUSModule::ShutdownModule()
 {
 	// TODO Clean up memory and stop all background processes
-	
+	CleanUp();
+
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 	// we call this function before unloading the module.
 	NotificationHelper.ShowNotificationFail(FText::FromString("Shutting down module"));
@@ -130,7 +131,7 @@ void FOPUSModule::CreateWindow()
 		.Title(LOCTEXT("WindowTitle", "OPUS API"))
 		.ClientSize(FVector2D(800, 650))
 		.IsInitiallyMaximized(false);
-	
+
 	FSlateApplication::Get().AddWindow(MainWindow.ToSharedRef());
 }
 
@@ -171,6 +172,7 @@ void FOPUSModule::ShowQueueScreen()
 {
 	MainWindow->SetContent(QueueScreen.ToSharedRef());
 	CurrentScreenState = QUEUE;
+	QueueScreen->SetQueueLoopEnabled(true);
 }
 
 // Delegate Events
@@ -200,14 +202,12 @@ void FOPUSModule::OnCreationScreenEnabled()
 	ShowCreationScreen();
 }
 
-void FOPUSModule::OnWindowClosed()
-{
-
-}
-
 void FOPUSModule::CleanUp()
 {
-
+	if (QueueScreen != nullptr)
+	{
+		QueueScreen->SetQueueLoopEnabled(false);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

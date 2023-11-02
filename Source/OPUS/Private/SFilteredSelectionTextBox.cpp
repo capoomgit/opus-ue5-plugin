@@ -5,6 +5,8 @@
 #include "SlateOptMacros.h"
 #include "Widgets/Layout/SScrollBox.h"
 
+#define LOCTEXT_NAMESPACE "FOPUSModule"
+
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SFilteredSelectionTextBox::Construct(const FArguments& InArgs)
 {
@@ -20,16 +22,15 @@ void SFilteredSelectionTextBox::Construct(const FArguments& InArgs)
 
                 + SVerticalBox::Slot()
                 .AutoHeight()
-
                 [
                     SNew(SBorder)
-                        .BorderImage(FCoreStyle::Get().GetBrush("Border"))
+                        //.BorderImage(FCoreStyle::Get().GetBrush("Border"))
                         .BorderBackgroundColor(FLinearColor::White)
                         .Padding(FMargin(5.0f))
                         [
                             SAssignNew(EditableTextBox, SEditableText)
                                 .OnTextChanged(InArgs._OnTextChanged)
-
+                                .HintText(FText::FromString("Loading"))
                         ]
                 ]
 
@@ -52,7 +53,6 @@ void SFilteredSelectionTextBox::Construct(const FArguments& InArgs)
 	];
 
     KeyboardUserIndex = FSlateApplication::Get().GetUserIndexForKeyboard();
-
 }
 
 FText SFilteredSelectionTextBox::GetText() const
@@ -84,27 +84,6 @@ TSharedRef<ITableRow> SFilteredSelectionTextBox::GenerateSuggestionRow(TSharedPt
             SNew(SButton)
                 .Text(FText::FromString(*Suggestion))
                 .OnClicked(this, &SFilteredSelectionTextBox::OnSuggestionRowClicked, Suggestion)
-                //.OnClicked_Lambda([this, Suggestion]()
-                //    {
-                //        if (EditableTextBox.IsValid())
-                //        {
-                //            // Set the full suggestion (i.e., "SubCategory - Tag") in the search box
-                //            EditableTextBox->SetText(FText::FromString(*Suggestion));
-                //        }
-
-                //        // Set the selected tag suggestion
-                //        OnSuggestionSelected.Broadcast(Suggestion);
-
-                //        // Clear the filtered tag suggestions
-                //        FilteredSuggestions.Empty();
-
-                //        // Refresh the tag suggestions list view
-                //        SuggestionsListView->RequestListRefresh();
-                //        SuggestionsListView->Invalidate(EInvalidateWidget::Layout);
-                //        SuggestionsListView->SetVisibility(EVisibility::Collapsed); // This will hide the tag suggestions view.
-                //        return FReply::Handled();
-                //    })
-                //.OnClicked_Raw(this, &SFilteredSelectionTextBox::OnSuggestionRowClicked, Suggestion)
         ];
 }
 
@@ -140,12 +119,37 @@ void SFilteredSelectionTextBox::Tick(const FGeometry& AllottedGeometry, const do
     TSharedPtr<SWidget> ListWidgetPointer = SuggestionsListView;
     TSharedPtr<SWidget> TextBoxWidgetPointer = EditableTextBox;
     
+    SelectionsLoadingHint();
+
     bool isTextBoxFocused = TextBoxWidgetPointer->HasKeyboardFocus();
     bool isListFocused = ListWidgetPointer->HasKeyboardFocus() || ListWidgetPointer->HasUserFocusedDescendants(KeyboardUserIndex);
     EVisibility ListVisibility = (isTextBoxFocused || isListFocused) ? EVisibility::Visible : EVisibility::Collapsed;
 
-    SuggestionsListView->SetVisibility(ListVisibility);
-        
+    SuggestionsListView->SetVisibility(ListVisibility);    
+}
+
+void SFilteredSelectionTextBox::SelectionsLoadingHint()
+{
+    if (SuggestionsListView->GetAllChildren()->Num() == 0)
+    {
+        FString LoadingString = "Loading";
+        LoadingIteration++;
+
+        int DotCount = FMath::Floor(LoadingIteration / 60);
+
+        for (int i = 0; i < DotCount; i++)
+        {
+            LoadingString.AppendChar('.');
+        }
+
+        LoadingIteration = DotCount < 2 ? LoadingIteration : 0;
+        EditableTextBox->SetHintText(FText::FromString(LoadingString));
+    }
+    else
+    {
+        EditableTextBox->SetHintText(FText::FromString("Click to see options"));
+    }
 }
 
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+#undef LOCTEXT_NAMESPACE

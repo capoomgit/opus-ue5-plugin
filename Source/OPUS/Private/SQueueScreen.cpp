@@ -32,6 +32,7 @@ void SQueueScreen::Construct(const FArguments& InArgs)
             + SOverlay::Slot()
             .VAlign(VAlign_Top)
             .HAlign(HAlign_Right)
+            .Padding(0, 0 , 30 , 0)
             [
                 SNew(SHorizontalBox) // Add a new SHorizontalBox here
 
@@ -41,15 +42,6 @@ void SQueueScreen::Construct(const FArguments& InArgs)
                         SNew(SButton)
                             .Text(FText::FromString(TEXT("🗑️ Empty List"))) // Replace this with your desired text
                             .OnClicked(this, &SQueueScreen::EmptyQButtonClicked) // Add your EmptyListButtonClicked function
-                    ]
-
-                    + SHorizontalBox::Slot()
-                    .AutoWidth()
-                    .Padding(10, 0, 0, 0) // Add padding between buttons
-                    [
-                        SNew(SButton)
-                            .Text(FText::FromString(TEXT("↺ Empty Caching")))
-                            .OnClicked(this, &SQueueScreen::RefreshCachingButtonClicked)
                     ]
             ]
 
@@ -103,7 +95,8 @@ void SQueueScreen::Construct(const FArguments& InArgs)
 // --------------------------------
 // --- QUEUE LOGIC METHODS --------
 // --------------------------------
-
+bool SQueueScreen::GetQueueLoopEnabled() { return IsQueueLoopEnabled; }
+void SQueueScreen::SetQueueLoopEnabled(bool Enabled) { IsQueueLoopEnabled = Enabled; }
 void SQueueScreen::QueueLoop()
 {
     if (QueueData.Num() > 0)
@@ -119,7 +112,7 @@ void SQueueScreen::QueueLoop()
 
                 AsyncTask(ENamedThreads::GameThread, [this]()
                     {
-                        if (QueueData.Num() == 0)
+                        if (QueueData.Num() == 0 || !IsQueueLoopEnabled)
                         {
                             return;
                         }
@@ -447,6 +440,8 @@ FReply SQueueScreen::EmptyQButtonClicked()
     return FReply::Handled();
 }
 
+
+// Deprecated
 FReply SQueueScreen::RefreshCachingButtonClicked()
 {
     TSharedPtr<SWindow> WarningWindowPtr; // Declare a shared pointer
