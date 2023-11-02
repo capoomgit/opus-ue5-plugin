@@ -305,8 +305,8 @@ void SCreationScreen::Construct(const FArguments& InArgs)
                                         .Padding(FMargin(5.0f))
                                         [
                                             SNew(SBox)
-                                            .WidthOverride(300)
-                                            .HeightOverride(300)
+                                            .WidthOverride(250)
+                                            .HeightOverride(250)
                                                 [
                                                     SNew(SImage)
                                                         .Image(FOPUSStyle::Get().GetBrush("OPUS.SmallLogo"))
@@ -444,11 +444,13 @@ void SCreationScreen::ParseParameterInput(const FText& ParameterInputText)
         }
         else
         {
-            NotificationHelper.ShowNotificationFail(LOCTEXT("InvalidInputNotification", "The input is not in range!"));
+            //NotificationHelper.ShowNotificationFail(LOCTEXT("InvalidInputNotification", "The input is not in range!"));
+            ShowWarningWindow("Parameter input is out of given range");
         }
     }
     else
     {
+        ShowWarningWindow("Parameter input is not a number");
         UE_LOG(LogTemp, Warning, TEXT("The input for the parameter is not a valid number!"));
     }
 }
@@ -471,9 +473,12 @@ FReply SCreationScreen::ApplyFeatureButtonClicked()
     // Clear selection
     SelectedTagSuggestion = nullptr;
     SelectedParameterSuggestion = nullptr;
+    CurrentParameterRange = FVector2D::Zero();
     TagSearchBox->SetText(FText::GetEmpty());
     ParameterSearchBox->SetText(FText::GetEmpty());
+    GetParamHintText();
 
+    // Clear table
     TableView->RequestListRefresh();
     TableView->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 
@@ -580,6 +585,7 @@ TSharedRef<ITableRow> SCreationScreen::GenerateTableRow(TSharedPtr<FKeywordTable
                 // Keyword column
                 + SHorizontalBox::Slot()
                 .FillWidth(1.5)
+                .Padding(5, 0, 0, 0)
                 [
                     SNew(STextBlock)
                         .Text(FText::FromString(*(RowData->Keyword)))
@@ -588,6 +594,7 @@ TSharedRef<ITableRow> SCreationScreen::GenerateTableRow(TSharedPtr<FKeywordTable
                 // Value column
                 + SHorizontalBox::Slot()
                 .AutoWidth()
+                .Padding(0, 0, 5, 0)
                 [
                     SNew(STextBlock)
                         .Text(this, &SCreationScreen::GetKeywordValue, RowData)
@@ -599,10 +606,11 @@ TSharedRef<ITableRow> SCreationScreen::GenerateTableRow(TSharedPtr<FKeywordTable
                 [
                     SNew(SButton)
                         .Text(FText::FromString(TEXT("×")))
-                        .OnClicked_Lambda([this, RowData]() -> FReply {
-                        TableRows.Remove(RowData);
-                        TableView->RequestListRefresh();
-                        return FReply::Handled();
+                        .OnClicked_Lambda([this, RowData]() -> FReply 
+                            {
+                                TableRows.Remove(RowData);
+                                TableView->RequestListRefresh();
+                                return FReply::Handled();
                             })
                 ]
         ];

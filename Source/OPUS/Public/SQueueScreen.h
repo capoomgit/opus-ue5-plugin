@@ -45,12 +45,12 @@ public:
 public:
 	bool GetQueueLoopEnabled();
 	void SetQueueLoopEnabled(bool Enable);
+	void ReadAndParseQueueFile();
+	void QueueLoop();
 
 private:
 	// Queue logic methods
-	void QueueLoop();
 	void WriteQueueToFile();
-	void ReadAndParseQueueFile();
 	TSharedRef<ITableRow>OnGenerateRowForList(TSharedPtr<FQueueRow> InItem, const TSharedRef<STableViewBase>& OwnerTable);
 
 	// Button callbacks

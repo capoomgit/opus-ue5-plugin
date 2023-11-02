@@ -160,12 +160,22 @@ void FOPUSModule::ShowLoginScreen()
 {
 	MainWindow->SetContent(LoginScreen.ToSharedRef());
 	CurrentScreenState = LOGIN;
+
+	if (QueueScreen.IsValid())
+	{
+		QueueScreen->SetQueueLoopEnabled(false);
+	}
 }
 
 void FOPUSModule::ShowCreationScreen() 
 {
 	MainWindow->SetContent(CreationScreen.ToSharedRef());
 	CurrentScreenState = CREATION;
+
+	if (QueueScreen.IsValid())
+	{
+		QueueScreen->SetQueueLoopEnabled(false);
+	}
 }
 
 void FOPUSModule::ShowQueueScreen() 
@@ -173,6 +183,8 @@ void FOPUSModule::ShowQueueScreen()
 	MainWindow->SetContent(QueueScreen.ToSharedRef());
 	CurrentScreenState = QUEUE;
 	QueueScreen->SetQueueLoopEnabled(true);
+	QueueScreen->ReadAndParseQueueFile();
+	QueueScreen->QueueLoop();
 }
 
 // Delegate Events

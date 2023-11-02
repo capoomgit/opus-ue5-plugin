@@ -23,6 +23,7 @@ void SQueueScreen::Construct(const FArguments& InArgs)
             + SOverlay::Slot()
             .VAlign(VAlign_Top)
             .HAlign(HAlign_Left)
+            .Padding(70, 0, 0, 0)
             [
                 SNew(SButton)
                     .Text(FText::FromString(TEXT("←")))
@@ -32,7 +33,7 @@ void SQueueScreen::Construct(const FArguments& InArgs)
             + SOverlay::Slot()
             .VAlign(VAlign_Top)
             .HAlign(HAlign_Right)
-            .Padding(0, 0 , 30 , 0)
+            .Padding(0, 0 , 70, 0)
             [
                 SNew(SHorizontalBox) // Add a new SHorizontalBox here
 
@@ -87,9 +88,6 @@ void SQueueScreen::Construct(const FArguments& InArgs)
                     ]
             ]
 	];
-	
-    ReadAndParseQueueFile();
-    QueueLoop();
 }
 
 // --------------------------------
@@ -259,10 +257,10 @@ TSharedRef<ITableRow> SQueueScreen::OnGenerateRowForList(TSharedPtr<FQueueRow> I
                             NotificationHelper.ShowNotificationPending(LOCTEXT("Pending", "Job is not ready yet. Please wait..."));
                         }
                         else if (QueueData[CurrentIndex]->Status == TEXT("FAILED")) {
-                            NotificationHelper.ShowNotificationFail(LOCTEXT("ErrorOccured", "Job failed. Please try again later."));
+                            NotificationHelper.ShowNotificationFail(LOCTEXT("ErrorOccured", "Job failed. Please try again later or check logs for more information"));
                         }
                         else if (QueueData[CurrentIndex]->Status == TEXT("SUSPENDED")) {
-                            NotificationHelper.ShowNotificationFail(LOCTEXT("OpusError", "Due to some reasons the job is suspended from the OPUS. Please try again later."));
+                            NotificationHelper.ShowNotificationFail(LOCTEXT("OpusError", "Due to some reasons the job is suspended from the OPUS. Please try again later or check logs for more information"));
                         }
                         return FReply::Handled();
                             })
@@ -542,7 +540,6 @@ void SQueueScreen::SendSecondAPIRequest_JobResult(FString jobID)
         });
     HttpRequest->ProcessRequest();
     UE_LOG(LogTemp, Error, TEXT("Reached the end of request"));
-    UE_LOG(LogTemp, Log, TEXT("Stored API Key: %s"), *APIKey);
     UE_LOG(LogTemp, Log, TEXT("Sending request to URL: %s"), *(URL + Parameters));
 }
 
