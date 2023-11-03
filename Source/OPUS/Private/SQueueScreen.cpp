@@ -7,6 +7,7 @@
 #include "Async/Async.h"
 #include "Serialization/JsonReader.h" 
 #include "Serialization/JsonSerializer.h" 
+#include "URLHelper.h"
 
 #define LOCTEXT_NAMESPACE "FOPUSModule"
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -428,20 +429,6 @@ FReply SQueueScreen::ReturnButtonClicked()
 
 FReply SQueueScreen::EmptyQButtonClicked()
 {
-    // Construct the full path to the queue.txt file
-    FString ProjectDir = FPaths::ProjectSavedDir();
-    FString QueueFile = FPaths::Combine(ProjectDir, TEXT("queue.txt"));
-
-    // Empty the queue.txt file
-    FFileHelper::SaveStringToFile(TEXT(""), *QueueFile);
-
-    return FReply::Handled();
-}
-
-
-// Deprecated
-FReply SQueueScreen::RefreshCachingButtonClicked()
-{
     TSharedPtr<SWindow> WarningWindowPtr; // Declare a shared pointer
     TSharedRef<SWindow> WarningWindow = SNew(SWindow)
         .Title(LOCTEXT("WarningTitle", "Warning"))
@@ -460,7 +447,7 @@ FReply SQueueScreen::RefreshCachingButtonClicked()
         .Padding(15)
         [
             SNew(STextBlock)
-                .Text(LOCTEXT("WarningText", "You are now deleting all cached jobs you created!\n This may cause problems if you have jobs in progress\n Are you sure you want to proceed?"))
+                .Text(LOCTEXT("Warning Deleting Jobs", "YOU ARE DELETING ALL THE JOBS.\nYou will not be able to download them again.\nAre you sure you want to continue?"))
                 .Justification(ETextJustify::Center)
         ]
 
@@ -476,30 +463,21 @@ FReply SQueueScreen::RefreshCachingButtonClicked()
                 [
                     SNew(SButton)
                         .Text(LOCTEXT("YesButton", "Yes"))
-                        .OnClicked_Lambda([this, WarningWindowPtr]() {
-                        if (WarningWindowPtr.IsValid())
-                        {
-                            WarningWindowPtr->RequestDestroyWindow();
-                        }
+                        .OnClicked_Lambda([this, WarningWindowPtr]() 
+                            {
+                                if (WarningWindowPtr.IsValid())
+                                {
+                                    WarningWindowPtr->RequestDestroyWindow();
+                                }
 
-                        // Construct the path to the UnzippedContents folder
-                        FString ProjectDir = FPaths::ProjectSavedDir();
-                        FString ZippedContents = FPaths::Combine(ProjectDir, TEXT("ZippedContents"));
+                                // Construct the full path to the queue.txt file
+                                FString ProjectDir = FPaths::ProjectSavedDir();
+                                FString QueueFile = FPaths::Combine(ProjectDir, TEXT("queue.txt"));
 
-                        // Get the platform file manager
-                        IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+                                // Empty the queue.txt file
+                                FFileHelper::SaveStringToFile(TEXT(""), *QueueFile);
 
-                        // Check if the directory exists
-                        if (PlatformFile.DirectoryExists(*ZippedContents))
-                        {
-                            // Delete all files and subdirectories in the UnzippedContents directory
-                            PlatformFile.DeleteDirectoryRecursively(*ZippedContents);
-
-                            // Create the directory again after deleting
-                            PlatformFile.CreateDirectory(*ZippedContents);
-                        }
-
-                        return FReply::Handled();
+                                return FReply::Handled();
                             })
                 ]
 
@@ -508,12 +486,13 @@ FReply SQueueScreen::RefreshCachingButtonClicked()
                 [
                     SNew(SButton)
                         .Text(LOCTEXT("NoButton", "No"))
-                        .OnClicked_Lambda([WarningWindowPtr]() {
-                        if (WarningWindowPtr.IsValid())
-                        {
-                            WarningWindowPtr->RequestDestroyWindow();
-                        }
-                        return FReply::Handled();
+                        .OnClicked_Lambda([WarningWindowPtr]() 
+                            {
+                                if (WarningWindowPtr.IsValid())
+                                {
+                                    WarningWindowPtr->RequestDestroyWindow();
+                                }
+                                return FReply::Handled();
                             })
                 ]
         ]);
@@ -527,7 +506,7 @@ FReply SQueueScreen::RefreshCachingButtonClicked()
 void SQueueScreen::SendSecondAPIRequest_JobResult(FString jobID)
 {
     FString EncodedJobID = FGenericPlatformHttp::UrlEncode(jobID.TrimStartAndEnd()); // URL encoding after trimming
-    FString URL = "https://opus5.p.rapidapi.com/get_opus_job_result";
+    FString URL = URLHelper::GetJobResults;
     FString Parameters = "?result_uid=" + EncodedJobID;
     TSharedRef<IHttpRequest, ESPMode::ThreadSafe> HttpRequest = FHttpModule::Get().CreateRequest();
     HttpRequest->SetVerb("GET");
@@ -535,9 +514,9 @@ void SQueueScreen::SendSecondAPIRequest_JobResult(FString jobID)
     HttpRequest->SetHeader("X-RapidAPI-Key", APIKey);
     HttpRequest->SetHeader("X-RapidAPI-Host", "opus5.p.rapidapi.com");
     HttpRequest->OnProcessRequestComplete().BindLambda([this, jobID](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
-        {
-            OnSecondAPIRequestJobResultCompleted(Request, Response, bWasSuccessful, jobID);
-        });
+    {
+        OnSecondAPIRequestJobResultCompleted(Request, Response, bWasSuccessful, jobID);
+    });
     HttpRequest->ProcessRequest();
     UE_LOG(LogTemp, Error, TEXT("Reached the end of request"));
     UE_LOG(LogTemp, Log, TEXT("Sending request to URL: %s"), *(URL + Parameters));
@@ -631,6 +610,5 @@ void SQueueScreen::OnSecondAPIRequestJobResultCompleted(FHttpRequestPtr Request,
 }
 
 void SQueueScreen::SetAPIKey(FString apiKey) { APIKey = apiKey; }
-
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 #undef LOCTEXT_NAMESPACE

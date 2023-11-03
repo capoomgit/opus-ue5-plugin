@@ -7,3 +7,4 @@
 #include "C:/Users/capoom/Documents/Unreal Projects/OPUSTest1/Plugins/OPUS/Source/OPUS/Private/SFilteredSelectionTextBox.cpp"
 #include "C:/Users/capoom/Documents/Unreal Projects/OPUSTest1/Plugins/OPUS/Source/OPUS/Private/SLoginScreen.cpp"
 #include "C:/Users/capoom/Documents/Unreal Projects/OPUSTest1/Plugins/OPUS/Source/OPUS/Private/SQueueScreen.cpp"
+#include "C:/Users/capoom/Documents/Unreal Projects/OPUSTest1/Plugins/OPUS/Source/OPUS/Private/URLHelper.cpp"

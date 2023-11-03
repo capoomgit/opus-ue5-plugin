@@ -16,7 +16,6 @@ void SFilteredSelectionTextBox::Construct(const FArguments& InArgs)
 
             + SOverlay::Slot()
             .VAlign(VAlign_Top)
-
             [
             SNew(SVerticalBox)
 
@@ -30,7 +29,7 @@ void SFilteredSelectionTextBox::Construct(const FArguments& InArgs)
                         [
                             SAssignNew(EditableTextBox, SEditableText)
                                 .OnTextChanged(InArgs._OnTextChanged)
-                                .HintText(FText::FromString("Loading"))
+                                .HintText(FText::FromString("Click to see customization options"))
                         ]
                 ]
 
@@ -119,7 +118,6 @@ void SFilteredSelectionTextBox::Tick(const FGeometry& AllottedGeometry, const do
     TSharedPtr<SWidget> ListWidgetPointer = SuggestionsListView;
     TSharedPtr<SWidget> TextBoxWidgetPointer = EditableTextBox;
     
-    SelectionsLoadingHint();
 
     bool isTextBoxFocused = TextBoxWidgetPointer->HasKeyboardFocus();
     bool isListFocused = ListWidgetPointer->HasKeyboardFocus() || ListWidgetPointer->HasUserFocusedDescendants(KeyboardUserIndex);
@@ -128,28 +126,27 @@ void SFilteredSelectionTextBox::Tick(const FGeometry& AllottedGeometry, const do
     SuggestionsListView->SetVisibility(ListVisibility);    
 }
 
-void SFilteredSelectionTextBox::SelectionsLoadingHint()
+void SFilteredSelectionTextBox::SelectionsLoadingStarted()
 {
-    if (SuggestionsListView->GetAllChildren()->Num() == 0)
-    {
-        FString LoadingString = "Loading";
-        LoadingIteration++;
-
-        int DotCount = FMath::Floor(LoadingIteration / 60);
-
-        for (int i = 0; i < DotCount; i++)
-        {
-            LoadingString.AppendChar('.');
-        }
-
-        LoadingIteration = DotCount < 2 ? LoadingIteration : 0;
-        EditableTextBox->SetHintText(FText::FromString(LoadingString));
-    }
-    else
-    {
-        EditableTextBox->SetHintText(FText::FromString("Click to see options"));
-    }
+    FString LoadingString = "Loading...";
+    EditableTextBox->SetText(FText::FromString(LoadingString));
+    EditableTextBox->SetEnabled(false);
 }
+
+void SFilteredSelectionTextBox::SelectionsLoadingComplete()
+{
+
+    if (SuggestionsListView->GetItems().Num() == 0)
+    {
+        EditableTextBox->SetText(FText::FromString("No customization for current model"));
+        EditableTextBox->SetEnabled(false);
+        return;
+    }
+
+    EditableTextBox->SetText(FText::GetEmpty());
+    EditableTextBox->SetEnabled(true);
+}
+
 
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 #undef LOCTEXT_NAMESPACE

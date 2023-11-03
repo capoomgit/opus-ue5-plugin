@@ -5,6 +5,7 @@
 #include "SlateOptMacros.h"
 #include "OPUSStyle.h"
 #include "SFilteredSelectionTextBox.h"
+#include "URLHelper.h"
 
 // Libraries
 #include "Misc/FileHelper.h"
@@ -191,7 +192,7 @@ void SCreationScreen::Construct(const FArguments& InArgs)
                                                 [
                                                     SAssignNew(ParamInputBox, SEditableTextBox)
                                                         .HintText(this, &SCreationScreen::GetParamHintText)
-                                                        //.Visibility(this, &SCreationScreen::GetParamInputBoxVisibility)
+                                                        .OnTextCommitted(this, &SCreationScreen::OnTextCommittedInParameterInput)
                                                 ]
                                         ]
 
@@ -279,12 +280,12 @@ void SCreationScreen::Construct(const FArguments& InArgs)
                                         .WidthOverride(130)
                                         .HeightOverride(50)
                                         [
-                                            SNew(SButton)
+                                            SAssignNew(CreateButton, SButton)
                                                 .VAlign(VAlign_Center)
                                                 .HAlign(HAlign_Center)
                                                 .Text(LOCTEXT("Generate Model", "Generate Model"))
                                                 .OnClicked(this, &SCreationScreen::CreateButtonClicked)
-                                                .ButtonColorAndOpacity(FLinearColor(0.1,1,0.1,1))
+                                                .ButtonColorAndOpacity(FLinearColor(0.3,1,0.3,1))
                                         ]
                                 ]
                         ]
@@ -352,106 +353,27 @@ FReply SCreationScreen::LogoutButtonClicked()
     return FReply::Handled();
 }
 
-// TODO Make create button send request and give positive feedback.
-FReply SCreationScreen::CreateButtonClicked()
+void SCreationScreen::ComboBoxSelectionChanged(TSharedPtr<FString> NewItem, ESelectInfo::Type SelectInfo)
 {
-    SendAPIRequest_Create();  
-    OnQueueScreenEnabledDelegate.Broadcast();
-    return FReply::Handled();
-}
-
-void SCreationScreen::ParseTagInput(const FText& TagInputText)
-{
-    FString TagBoxContent = TagInputText.ToString();
-    TArray<FString> ParsedStrings;
-
-    bool bFound = false;
-
-    if (TagBoxContent.ParseIntoArray(ParsedStrings, TEXT(" - "), true) == 2)
+    if (NewItem.IsValid())
     {
-        TSharedPtr<FString> MainCategory = MakeShared<FString>(ParsedStrings[0].TrimStartAndEnd());
-        TSharedPtr<FString> CurrentTag = MakeShared<FString>(ParsedStrings[1].TrimStartAndEnd());
+        CurrentModel = NewItem;
 
-        for (TSharedPtr<FKeywordTableRow>& existingRow : TableRows)
-        {
-            if (existingRow->Keyword->Equals(*MainCategory))
-            {
-                if (IsParameter(*MainCategory))  // Assuming IsParameter checks if it's a parameter
-                {
-                    existingRow->Value = CurrentTag;  // Update the value only
-                    bFound = true;
-                    break;
-                }
-                else // Check for non-parameter type
-                {
-                    if (existingRow->Value->Equals(*CurrentTag))
-                    {
-                        // Skip adding if a row with same keyword and value already exists
-                        bFound = true;
-                        break;
-                    }
-                }
-            }
-        }
+        // Clear the filtered suggestion lists (assuming you still want this)
+        ParameterFilteredSuggestions.Empty();
+        TagFilteredSuggestions.Empty();
 
-        if (!bFound)
-        {
-            // Add new row if tag doesnt exist in table
-            TSharedPtr<FKeywordTableRow> newRow = MakeShared<FKeywordTableRow>();
-            newRow->Keyword = MainCategory;
-            newRow->Value = CurrentTag;
-            TableRows.Add(newRow);
-            UE_LOG(LogTemp, Warning, TEXT("New Row Added! Main Category: %s, Tag: %s"), **newRow->Keyword, **newRow->Value);
-        }
+        ResetTable();
 
-        TableView->RequestListRefresh();
-        TableView->Invalidate(EInvalidateWidget::LayoutAndVolatility);
-    }
-    else
-    {
-        UE_LOG(LogTemp, Warning, TEXT("The TagsSearchBox content format is invalid!"));
-    }
-}
+        // Make an API call with the new item
+        SendThirdAPIRequest_AttributeName();
 
-void SCreationScreen::ParseParameterInput(const FText& ParameterInputText)
-{
-    bool bFoundParam = false;
-    FString ParamInputContent = ParameterInputText.ToString();
-    float InputValue;
-    //TODO: this section must be revised to a proper try-catch structure
-    if (FDefaultValueHelper::ParseFloat(ParamInputContent, InputValue))
-    {
-        if (InputValue >= CurrentParameterRange.X && InputValue <= CurrentParameterRange.Y)
-        {
-            for (TSharedPtr<FKeywordTableRow>& existingRow : TableRows)
-            {
-                if (existingRow->Keyword->Equals(*SelectedParameterSuggestion))
-                {
-                    existingRow->Value = MakeShared<FString>(ParamInputContent);
-                    bFoundParam = true;
-                    break;
-                }
-            }
+        // Refresh the list view
+        ParameterSearchBox->RequestListRefresh();
+        ParameterSearchBox->Invalidate(EInvalidateWidget::Layout);
 
-            if (!bFoundParam)
-            {
-                TSharedPtr<FKeywordTableRow> newRow = MakeShared<FKeywordTableRow>();
-                newRow->Keyword = SelectedParameterSuggestion;
-                newRow->Value = MakeShared<FString>(ParamInputContent);
-                TableRows.Add(newRow);
-                UE_LOG(LogTemp, Warning, TEXT("New Parameter Row Added! Parameter: %s, Value: %s"), **newRow->Keyword, **newRow->Value);
-            }
-        }
-        else
-        {
-            //NotificationHelper.ShowNotificationFail(LOCTEXT("InvalidInputNotification", "The input is not in range!"));
-            ShowWarningWindow("Parameter input is out of given range");
-        }
-    }
-    else
-    {
-        ShowWarningWindow("Parameter input is not a number");
-        UE_LOG(LogTemp, Warning, TEXT("The input for the parameter is not a valid number!"));
+        TagSearchBox->RequestListRefresh();
+        TagSearchBox->Invalidate(EInvalidateWidget::Layout);
     }
 }
 
@@ -499,6 +421,13 @@ FReply SCreationScreen::QueueButtonClicked()
     return FReply::Handled();
 }
 
+// TODO Make create button send request and give positive feedback.
+FReply SCreationScreen::CreateButtonClicked()
+{
+    SendAPIRequest_Create();
+    return FReply::Handled();
+}
+
 // ------------------------------
 // --- SEARCHBOX METHODS
 // ------------------------------
@@ -507,14 +436,29 @@ void SCreationScreen::OnTagsSearchTextChanged(const FText& NewText)
 {
     // Clear previous suggestions
     TagFilteredSuggestions.Empty();
-
     FString CurrentInput = NewText.ToString();
-
+    
+    // loop through tags list
     for (const TSharedPtr<FPair>& CurrentPair : TagsList)
     {
+        bool TagCategoryAlreadyAdded = false;
         if (CurrentPair->Tag.Contains(CurrentInput))
         {
-            TagFilteredSuggestions.Add(MakeShared<FString>(CurrentPair->SubCategory + " - " + CurrentPair->Tag));
+            // Loop through rows in the customizations table
+            for (const TSharedPtr<FKeywordTableRow> Row : TableRows)
+            {
+                // Check if subcategory tag already assigned
+                if (Row->Keyword->Equals(CurrentPair->SubCategory))
+                {
+                    TagCategoryAlreadyAdded = true;
+                    break;
+                }
+            }
+
+            if (!TagCategoryAlreadyAdded)
+            {
+                TagFilteredSuggestions.Add(MakeShared<FString>(CurrentPair->SubCategory + " - " + CurrentPair->Tag));
+            }
         }
     }
 
@@ -571,7 +515,13 @@ void SCreationScreen::OnParameterSelected(TSharedPtr<FString> ParameterSelection
     }
 }
 
-
+void SCreationScreen::OnTextCommittedInParameterInput(const FText& Text, ETextCommit::Type CommitMethod)
+{
+    if (CommitMethod == ETextCommit::OnEnter)
+    {
+        ApplyFeatureButtonClicked(); // You can call your login function directly here
+    }
+}
 // ------------------------------
 // --- TABLE METHODS
 // ------------------------------
@@ -636,6 +586,110 @@ void SCreationScreen::ResetTable()
 
 void SCreationScreen::SetAPIKey(FString apiKey) { APIKey = apiKey; }
 
+void SCreationScreen::ParseTagInput(const FText& TagInputText)
+{
+    FString TagBoxContent = TagInputText.ToString();
+    TArray<FString> ParsedStrings;
+
+    bool bFound = false;
+
+    if (TagBoxContent.ParseIntoArray(ParsedStrings, TEXT(" - "), true) == 2)
+    {
+        TSharedPtr<FString> MainCategory = MakeShared<FString>(ParsedStrings[0].TrimStartAndEnd());
+        TSharedPtr<FString> CurrentTag = MakeShared<FString>(ParsedStrings[1].TrimStartAndEnd());
+
+        for (TSharedPtr<FKeywordTableRow>& existingRow : TableRows)
+        {
+            if (existingRow->Keyword->Equals(*MainCategory))
+            {
+                if (IsParameter(*MainCategory))  // Assuming IsParameter checks if it's a parameter
+                {
+                    existingRow->Value = CurrentTag;  // Update the value only
+                    bFound = true;
+                    break;
+                }
+                else // Check for non-parameter type
+                {
+                    if (existingRow->Value->Equals(*CurrentTag))
+                    {
+                        // Skip adding if a row with same keyword and value already exists
+                        bFound = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!bFound)
+        {
+            // Add new row if tag doesnt exist in table
+            TSharedPtr<FKeywordTableRow> newRow = MakeShared<FKeywordTableRow>();
+            newRow->Keyword = MainCategory;
+            newRow->Value = CurrentTag;
+            TableRows.Add(newRow);
+            UE_LOG(LogTemp, Warning, TEXT("New Row Added! Main Category: %s, Tag: %s"), **newRow->Keyword, **newRow->Value);
+        }
+
+        TableView->RequestListRefresh();
+        TableView->Invalidate(EInvalidateWidget::LayoutAndVolatility);
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("The TagsSearchBox content format is invalid!"));
+    }
+}
+
+void SCreationScreen::ParseParameterInput(const FText& ParameterInputText)
+{
+    bool bFoundParam = false;
+    FString ParamInputContent = ParameterInputText.ToString();
+    float InputValue;
+
+    // Handle input starting with decimal point, make ".2" into "0.2"
+    if (ParamInputContent.StartsWith("."))
+    {
+        FString DecimalString = "0";
+        DecimalString.Append(ParamInputContent);
+        ParamInputContent = DecimalString;
+    }
+
+    //TODO: this section must be revised to a proper try-catch structure
+    if (FDefaultValueHelper::ParseFloat(ParamInputContent, InputValue))
+    {
+        if (InputValue >= CurrentParameterRange.X && InputValue <= CurrentParameterRange.Y)
+        {
+            for (TSharedPtr<FKeywordTableRow>& existingRow : TableRows)
+            {
+                if (existingRow->Keyword->Equals(*SelectedParameterSuggestion))
+                {
+                    existingRow->Value = MakeShared<FString>(ParamInputContent);
+                    bFoundParam = true;
+                    break;
+                }
+            }
+
+            if (!bFoundParam)
+            {
+                TSharedPtr<FKeywordTableRow> newRow = MakeShared<FKeywordTableRow>();
+                newRow->Keyword = SelectedParameterSuggestion;
+                newRow->Value = MakeShared<FString>(ParamInputContent);
+                TableRows.Add(newRow);
+                UE_LOG(LogTemp, Warning, TEXT("New Parameter Row Added! Parameter: %s, Value: %s"), **newRow->Keyword, **newRow->Value);
+            }
+        }
+        else
+        {
+            //NotificationHelper.ShowNotificationFail(LOCTEXT("InvalidInputNotification", "The input is not in range!"));
+            ShowWarningWindow("Parameter input is out of given range");
+        }
+    }
+    else
+    {
+        ShowWarningWindow("Parameter input is not a number");
+        UE_LOG(LogTemp, Warning, TEXT("The input for the parameter is not a valid number!"));
+    }
+}
+
 FText SCreationScreen::GetCurrentItem() const
 {
     if (CurrentModel.IsValid())
@@ -656,41 +710,6 @@ FText SCreationScreen::GetParamHintText() const
     else
     {
         return LOCTEXT("Param Value", "Parameter value");
-    }
-}
-
-void SCreationScreen::ComboBoxSelectionChanged(TSharedPtr<FString> NewItem, ESelectInfo::Type SelectInfo)
-{
-    if (NewItem.IsValid())
-    {
-        CurrentModel = NewItem;
-
-        // Clear the search boxes
-        if (ParameterSearchBox.IsValid())
-        {
-            //ParameterSearchBox->SetText(FText::GetEmpty());
-        }
-
-        if (TagSearchBox.IsValid())
-        {
-            //TagSearchBox->SetText(FText::GetEmpty());
-        }
-
-        // Clear the filtered suggestion lists (assuming you still want this)
-        ParameterFilteredSuggestions.Empty();
-        TagFilteredSuggestions.Empty();
-
-        ResetTable();
-
-        // Make an API call with the new item
-        SendThirdAPIRequest_AttributeName();
-
-        // Refresh the list view
-        ParameterSearchBox->RequestListRefresh();
-        ParameterSearchBox->Invalidate(EInvalidateWidget::Layout);
-
-        TagSearchBox->RequestListRefresh();
-        TagSearchBox->Invalidate(EInvalidateWidget::Layout);
     }
 }
 
@@ -744,54 +763,6 @@ FReply SCreationScreen::ShowWarningWindow(FString warningMessage)
                 ]
         ]);
     return FReply::Handled();
-}
-
-// Deprecated
-EVisibility SCreationScreen::GetParamInputBoxVisibility() const
-{
-    // If SelectedSuggestion is valid, then it's considered valid parameter and input box should be visible
-    return SelectedParameterSuggestion.IsValid() ? EVisibility::Visible : EVisibility::Collapsed;
-}
-
-TSharedRef<SWidget> SCreationScreen::GenerateComboBoxItem(TSharedPtr<FString> Item)
-{
-    return SNew(STextBlock).Text(FText::FromString(*Item));
-}
-
-bool SCreationScreen::IsParameter(const FString& Keyword)
-{
-    return Keyword.Contains("/");  // Adjust this if the criteria change
-}
-
-// ------------------------------
-// --- API REQUEST METHODS
-// ------------------------------
-
-void SCreationScreen::SendAPIRequest_Create()
-{
-    FString Url = "https://opus5.p.rapidapi.com/create_opus_component";
-
-    for (const auto& structure : Structures)
-    {
-        if (structure->Equals(*CurrentModel))
-        {
-            // Change the URL for structures
-            Url = "https://opus5.p.rapidapi.com/create_opus_structure";
-            break;
-        }
-    }
-
-    FString JsonData = ConstructJSONData();
-
-    TSharedRef<IHttpRequest, ESPMode::ThreadSafe> HttpRequest = FHttpModule::Get().CreateRequest();
-    HttpRequest->SetURL(Url);
-    HttpRequest->SetVerb("POST");
-    HttpRequest->SetHeader("Content-Type", "application/json");
-    HttpRequest->SetHeader("X-RapidAPI-Key", APIKey);
-    HttpRequest->SetHeader("X-RapidAPI-Host", "opus5.p.rapidapi.com");
-    HttpRequest->SetContentAsString(JsonData);
-    HttpRequest->OnProcessRequestComplete().BindRaw(this, &SCreationScreen::OnAPIRequestCreateCompleted);
-    HttpRequest->ProcessRequest();
 }
 
 FString SCreationScreen::ConstructJSONData()
@@ -859,8 +830,56 @@ FString SCreationScreen::ConstructJSONData()
     return JsonData;
 }
 
+TSharedRef<SWidget> SCreationScreen::GenerateComboBoxItem(TSharedPtr<FString> Item)
+{
+    return SNew(STextBlock).Text(FText::FromString(*Item));
+}
+
+bool SCreationScreen::IsParameter(const FString& Keyword)
+{
+    return Keyword.Contains("/");  // Adjust this if the criteria change
+}
+
+// ------------------------------
+// --- API REQUEST METHODS
+// ------------------------------
+
+void SCreationScreen::SendAPIRequest_Create()
+{
+    // Disable create button
+    CreateButton->SetEnabled(false);
+    FString Url = URLHelper::CreateComponent;
+
+    for (const auto& structure : Structures)
+    {
+        if (structure->Equals(*CurrentModel))
+        {
+            // Change the URL for structures
+            Url = URLHelper::CreateStructure;
+            break;
+        }
+    }
+
+    FString JsonData = ConstructJSONData();
+
+    TSharedRef<IHttpRequest, ESPMode::ThreadSafe> HttpRequest = FHttpModule::Get().CreateRequest();
+    HttpRequest->SetURL(Url);
+    HttpRequest->SetVerb("POST");
+    HttpRequest->SetHeader("Content-Type", "application/json");
+    HttpRequest->SetHeader("X-RapidAPI-Key", APIKey);
+    HttpRequest->SetHeader("X-RapidAPI-Host", "opus5.p.rapidapi.com");
+    HttpRequest->SetContentAsString(JsonData);
+    HttpRequest->OnProcessRequestComplete().BindRaw(this, &SCreationScreen::OnAPIRequestCreateCompleted);
+    HttpRequest->ProcessRequest();
+
+    NotificationHelper.ShowNotificationPending(FText::FromString("Creating Job"));
+}
+
 void SCreationScreen::OnAPIRequestCreateCompleted(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
 {
+    // Enable create button
+    CreateButton->SetEnabled(true);
+
     if (bWasSuccessful && Response.IsValid() && EHttpResponseCodes::IsOk(Response->GetResponseCode()))
     {
         int32 ResponseCode = Response->GetResponseCode();
@@ -903,6 +922,8 @@ void SCreationScreen::OnAPIRequestCreateCompleted(FHttpRequestPtr Request, FHttp
 
                 // Append to file. This will create the file if it doesn't exist.
                 FFileHelper::SaveStringToFile(TextToSave + LINE_TERMINATOR, *AbsolutePath, FFileHelper::EEncodingOptions::AutoDetect, &IFileManager::Get(), EFileWrite::FILEWRITE_Append);
+
+                OnQueueScreenEnabledDelegate.Broadcast();
             }
             else
             {
@@ -932,11 +953,9 @@ void SCreationScreen::OnAPIRequestCreateCompleted(FHttpRequestPtr Request, FHttp
     }
 }
 
-
-
 void SCreationScreen::SendThirdAPIRequest_AttributeName()
 {
-    FString Url = "https://opus5.p.rapidapi.com/get_attributes_with_name";
+    FString Url = URLHelper::GetAttributesWithName;
     FString Parameters = "?name=" + *CurrentModel;
     TSharedRef<IHttpRequest, ESPMode::ThreadSafe> HttpRequest = FHttpModule::Get().CreateRequest();
     HttpRequest->SetURL(Url + Parameters);
@@ -946,6 +965,10 @@ void SCreationScreen::SendThirdAPIRequest_AttributeName()
     HttpRequest->OnProcessRequestComplete().BindRaw(this, &SCreationScreen::OnThirdAPIRequestAttributeNameCompleted);
     HttpRequest->ProcessRequest();
     UE_LOG(LogTemp, Log, TEXT("Sending request to URL: %s"), *(Url + Parameters));
+
+    // Give feedback
+    TagSearchBox->SelectionsLoadingStarted();
+    ParameterSearchBox->SelectionsLoadingStarted();
 }
 
 void SCreationScreen::OnThirdAPIRequestAttributeNameCompleted(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
@@ -1072,11 +1095,15 @@ void SCreationScreen::OnThirdAPIRequestAttributeNameCompleted(FHttpRequestPtr Re
             }
         }
     }
+
+    // Give feedback
+    TagSearchBox->SelectionsLoadingComplete();
+    ParameterSearchBox->SelectionsLoadingComplete();
 }
 
 void SCreationScreen::SendForthAPIRequest_ModelNames()
 {
-    FString Url = "https://opus5.p.rapidapi.com/get_model_names";
+    FString Url = URLHelper::GetModels;
     FString JsonData = "";
 
     TSharedRef<IHttpRequest, ESPMode::ThreadSafe> HttpRequest = FHttpModule::Get().CreateRequest();

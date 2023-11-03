@@ -43,7 +43,8 @@ public:
 	void SetText(const TAttribute<FText>& NewText);
 	void RequestListRefresh();
 	void SetListVisibility(EVisibility NewVisibility);
-
+	void SelectionsLoadingStarted();
+	void SelectionsLoadingComplete();
 
 public:
 
@@ -56,8 +57,7 @@ private:
 	TSharedRef<ITableRow> GenerateSuggestionRow(TSharedPtr<FString> Suggestion, const TSharedRef<STableViewBase>& OwnerTable);
 	FReply OnSuggestionRowClicked(TSharedPtr<FString> Suggestion);
 	void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
-	void SelectionsLoadingHint();
-
+	
 private:
 	int32 KeyboardUserIndex;
 	int LoadingIteration;

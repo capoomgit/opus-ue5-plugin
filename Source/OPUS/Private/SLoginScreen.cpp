@@ -5,11 +5,13 @@
 #include "SlateOptMacros.h"
 #include "OPUSStyle.h"
 #include "EditorNotificationHelper.h"
+#include "URLHelper.h"
 
 //Libraries 
 #include "Http.h"
 #include "Async/Async.h"
 #include "Misc/FileHelper.h"
+
 
 #define LOCTEXT_NAMESPACE "FOPUSModule"
 
@@ -142,7 +144,7 @@ FReply SLoginScreen::LoginButtonClicked()
 void SLoginScreen::LogIn(FString key)
 {
     // Make API call with Username
-    FString Url = "https://opus5.p.rapidapi.com/get_model_names";
+    FString Url = URLHelper::GetModels;
     TSharedRef<IHttpRequest, ESPMode::ThreadSafe> HttpRequest = FHttpModule::Get().CreateRequest();
     HttpRequest->SetURL(Url);
     HttpRequest->SetVerb("GET");

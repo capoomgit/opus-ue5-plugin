@@ -11,6 +11,7 @@
 
 DECLARE_MULTICAST_DELEGATE(FOnQueueScreenEnabled);
 DECLARE_MULTICAST_DELEGATE(FOnLogout);
+DECLARE_MULTICAST_DELEGATE(FOnJobCompleted);
 
 class OPUS_API SCreationScreen : public SCompoundWidget
 {
@@ -68,7 +69,6 @@ private:
 	void SendAPIRequest_Create();
 	void OnAPIRequestCreateCompleted(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
 	void SendSecondAPIRequest_JobResult(FString jobID);
-	void OnSecondAPIRequestJobResultCompleted(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful, FString jobID);
 	void SendThirdAPIRequest_AttributeName();
 	void OnThirdAPIRequestAttributeNameCompleted(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
 	void SendForthAPIRequest_ModelNames();
@@ -100,9 +100,9 @@ private:
 	void ParseTagInput(const FText& TagInputText);
 	void ParseParameterInput(const FText& TagInputText);
 
-	// New SFilteredSelectionTextBox
 	void OnTagSelected(TSharedPtr<FString> SelectedTag);
 	void OnParameterSelected(TSharedPtr<FString> ParameterSelection);
+	void OnTextCommittedInParameterInput(const FText& Text, ETextCommit::Type CommitMethod);
 
 // ------------------------------
 // --- HELPER METHODS -----------
@@ -132,18 +132,18 @@ private:
 	bool IsFBXSelected = true;
 	bool IsGLTFSelected = false;
 
+	//BUTTONS
+	TSharedPtr<SButton> CreateButton;
+
 	//COMBOBOX DEFINITIONS
 	TSharedPtr<FString> CurrentModel;
 	TArray<TSharedPtr<FString>> ModelOptions;
 	TSharedPtr<SComboBox<TSharedPtr<FString>>> ModelComboBox;
 	TArray<TSharedPtr<FString>> Structures;
 
-
 	//TABLE RELATED
 	TArray<TSharedPtr<FKeywordTableRow>> TableRows;
 	TSharedPtr<SListView<TSharedPtr<FKeywordTableRow>>> TableView;
-	
-
 
 	// MEMBER DEFINITIONS FOR PARAM SEARCHBOX
 	TArray<TSharedPtr<FString>> ParameterFilteredSuggestions;

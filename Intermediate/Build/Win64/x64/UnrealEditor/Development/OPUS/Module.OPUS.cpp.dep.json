@@ -52,6 +52,7 @@
             "c:\\program files\\epic games\\ue_5.2\\engine\\source\\runtime\\projects\\public\\versescope.h",
             "c:\\program files\\epic games\\ue_5.2\\engine\\source\\runtime\\slatecore\\public\\styling\\slatestylemacros.h",
             "c:\\users\\capoom\\documents\\unreal projects\\opustest1\\plugins\\opus\\source\\opus\\private\\screationscreen.cpp",
+            "c:\\users\\capoom\\documents\\unreal projects\\opustest1\\plugins\\opus\\source\\opus\\public\\urlhelper.h",
             "c:\\program files\\epic games\\ue_5.2\\engine\\source\\runtime\\slate\\public\\widgets\\layout\\sscrollbox.h",
             "c:\\program files\\epic games\\ue_5.2\\engine\\intermediate\\build\\win64\\unrealeditor\\inc\\slate\\uht\\sscrollbox.generated.h",
             "c:\\program files\\epic games\\ue_5.2\\engine\\source\\runtime\\core\\public\\misc\\defaultvaluehelper.h",
@@ -62,7 +63,8 @@
             "c:\\program files\\epic games\\ue_5.2\\engine\\source\\runtime\\json\\public\\serialization\\jsonserializer.h",
             "c:\\users\\capoom\\documents\\unreal projects\\opustest1\\plugins\\opus\\source\\opus\\private\\sfilteredselectiontextbox.cpp",
             "c:\\users\\capoom\\documents\\unreal projects\\opustest1\\plugins\\opus\\source\\opus\\private\\sloginscreen.cpp",
-            "c:\\users\\capoom\\documents\\unreal projects\\opustest1\\plugins\\opus\\source\\opus\\private\\squeuescreen.cpp"
+            "c:\\users\\capoom\\documents\\unreal projects\\opustest1\\plugins\\opus\\source\\opus\\private\\squeuescreen.cpp",
+            "c:\\users\\capoom\\documents\\unreal projects\\opustest1\\plugins\\opus\\source\\opus\\private\\urlhelper.cpp"
         ],
         "ImportedModules": [],
         "ImportedHeaderUnits": []
