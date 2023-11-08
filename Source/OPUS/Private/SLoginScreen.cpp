@@ -104,18 +104,20 @@ void SLoginScreen::Construct(const FArguments& InArgs)
                                                     ]
                                             ]
                                     ]
+                            ]
+                    ]
 
-                                    + SHorizontalBox::Slot()
-                                    .AutoWidth()
-                                    [
-                                        SNew(SBox)
-                                            .WidthOverride(80)
-                                            [
-                                                SNew(SButton)
-                                                    .Text(LOCTEXT("LoginButton", "Login"))
-                                                    .OnClicked(this, &SLoginScreen::LoginButtonClicked)
-                                            ]
-                                    ]
+                    + SOverlay::Slot()
+                    .VAlign(VAlign_Center)
+                    .HAlign(HAlign_Center)
+                    .Padding(0, 60, 0, 0)
+                    [
+                        SNew(SBox)
+                            [
+                                SNew(SButton)
+                                    .ContentPadding(FMargin(10))
+                                    .Text(LOCTEXT("LoginButton", "Login"))
+                                    .OnClicked(this, &SLoginScreen::LoginButtonClicked)
                             ]
                     ]
             ];

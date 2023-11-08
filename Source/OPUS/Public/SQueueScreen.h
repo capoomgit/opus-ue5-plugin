@@ -14,10 +14,8 @@ class OPUS_API SQueueScreen : public SCompoundWidget
 public:
 	SLATE_BEGIN_ARGS(SQueueScreen)
 		: _APIKey("")
-		, _IsFBXSelected(true)
 		{}
 	SLATE_ARGUMENT(FString, APIKey)
-	SLATE_ARGUMENT(bool, IsFBXSelected)
 	SLATE_END_ARGS()
 
 	/** Constructs this widget with InArgs */
@@ -26,7 +24,6 @@ public:
 
 	// Delegate to show creation screen
 	FOnCreationScreenEnabled OnCreationScreenEnabledDelegate;
-
 
 public:
 	// Struct Definitions
@@ -66,6 +63,9 @@ private:
 	bool ExtractWith7Zip(const FString& ZipFile, const FString& DestinationDirectory);
 	void DownloadAndUnzipMethod(const FString& URL, const FString& DateTime, const FString& JobName);
 
+	// Helper methods
+	void SetUpFileTypes();
+
 private:
 	TSharedPtr<SListView<TSharedPtr<FQueueRow>>> QueueListView;
 	TArray<TSharedPtr<FQueueRow>> QueueData;
@@ -75,6 +75,6 @@ private:
 	FString SecondAPILink;
 	bool IsQueueLoopEnabled = false;
 
-	bool IsFBXSelected = true;
+	TArray<TSharedPtr<FString>> AvailableFileTypes;
 	EditorNotificationHelper NotificationHelper;
 };

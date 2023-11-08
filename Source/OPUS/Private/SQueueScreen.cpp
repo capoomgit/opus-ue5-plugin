@@ -15,7 +15,7 @@ void SQueueScreen::Construct(const FArguments& InArgs)
 {
     // Store API key
     APIKey = InArgs._APIKey;
-    IsFBXSelected = InArgs._IsFBXSelected;
+    SetUpFileTypes();
 
 	ChildSlot
 	[
@@ -24,7 +24,7 @@ void SQueueScreen::Construct(const FArguments& InArgs)
             + SOverlay::Slot()
             .VAlign(VAlign_Top)
             .HAlign(HAlign_Left)
-            .Padding(70, 0, 0, 0)
+            .Padding(22, 0, 0, 0)
             [
                 SNew(SButton)
                     .Text(FText::FromString(TEXT("←")))
@@ -34,7 +34,7 @@ void SQueueScreen::Construct(const FArguments& InArgs)
             + SOverlay::Slot()
             .VAlign(VAlign_Top)
             .HAlign(HAlign_Right)
-            .Padding(0, 0 , 70, 0)
+            .Padding(0, 0 , 22, 0)
             [
                 SNew(SHorizontalBox) // Add a new SHorizontalBox here
 
@@ -50,7 +50,7 @@ void SQueueScreen::Construct(const FArguments& InArgs)
             + SOverlay::Slot()
             .VAlign(VAlign_Center)
             .HAlign(HAlign_Center)
-            .Padding(0, 0, 0, 0)
+            .Padding(0, 10, 0, 0)
             [
                 SNew(SBorder)
                     .BorderImage(FCoreStyle::Get().GetBrush("Border"))
@@ -62,8 +62,8 @@ void SQueueScreen::Construct(const FArguments& InArgs)
                             + SVerticalBox::Slot()
                             [
                                 SNew(SBox)
-                                    .WidthOverride(650)
-                                    .HeightOverride(500)
+                                    .WidthOverride(550)
+                                    .HeightOverride(600)
                                     [
                                         SAssignNew(QueueListView, SListView<TSharedPtr<FQueueRow>>)
                                             .ItemHeight(24)
@@ -82,7 +82,7 @@ void SQueueScreen::Construct(const FArguments& InArgs)
 
                                                 + SHeaderRow::Column("StatusColumn")
                                                 .DefaultLabel(LOCTEXT("StatusColumnHeader", "Status"))
-                                                .FillWidth(1.3f)
+                                                .FillWidth(1.2f)
                                             )
                                     ]
                             ]
@@ -236,7 +236,7 @@ TSharedRef<ITableRow> SQueueScreen::OnGenerateRowForList(TSharedPtr<FQueueRow> I
                 ]
 
                 + SHorizontalBox::Slot()
-                .FillWidth(0.9f)
+                .FillWidth(0.8f)
                 [
                     SNew(STextBlock)
                         .Text(FText::FromString(InItem->Status))
@@ -558,29 +558,30 @@ void SQueueScreen::OnSecondAPIRequestJobResultCompleted(FHttpRequestPtr Request,
                     TSharedPtr<FJsonObject> urlsObject = JsonObject->GetObjectField("urls");
                     if (urlsObject.IsValid())
                     {
-                        FString extensionKey = IsFBXSelected ? "fbx" : "gltf";
-                        FString link;
 
-                        if (urlsObject->TryGetStringField(*extensionKey, link))
+                        for (TSharedPtr<FString> CurrentFileType : AvailableFileTypes)
                         {
-                            SecondAPILink = link;
-                            UE_LOG(LogTemp, Warning, TEXT("API link: %s"), *SecondAPILink);
+                            FString link;
 
-                            for (auto& jobData : QueueData)
+                            if (urlsObject->TryGetStringField(*CurrentFileType, link))
                             {
-                                if (jobData->JobID == jobID)
-                                {
-                                    jobData->DownloadLink = link;
-                                    break;
-                                }
-                            }
+                                SecondAPILink = link;
+                                UE_LOG(LogTemp, Warning, TEXT("API link: %s for file type %s"), *SecondAPILink, **CurrentFileType);
 
-                            WriteQueueToFile();
-                            QueueListView->RequestListRefresh();
-                        }
-                        else
-                        {
-                            UE_LOG(LogTemp, Warning, TEXT("Failed to get %s link"), *extensionKey);
+                                for (auto& jobData : QueueData)
+                                {
+                                    if (jobData->JobID == jobID)
+                                    {
+                                        jobData->DownloadLink = link;
+                                        break;
+                                    }
+                                }
+
+                                WriteQueueToFile();
+                                QueueListView->RequestListRefresh();
+                                // just gets link for one file type
+                                break;
+                            }
                         }
                     }
                     else
@@ -610,5 +611,15 @@ void SQueueScreen::OnSecondAPIRequestJobResultCompleted(FHttpRequestPtr Request,
 }
 
 void SQueueScreen::SetAPIKey(FString apiKey) { APIKey = apiKey; }
+
+// Helper methods 
+
+void SQueueScreen::SetUpFileTypes()
+{
+    AvailableFileTypes.Empty();
+    AvailableFileTypes.Add(MakeShareable(new FString("fbx")));
+    AvailableFileTypes.Add(MakeShareable(new FString("gltf")));
+    //AvailableFileTypes.Add(MakeShareable(new FString("usd")));
+}
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 #undef LOCTEXT_NAMESPACE

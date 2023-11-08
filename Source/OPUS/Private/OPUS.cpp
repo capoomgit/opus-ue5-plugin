@@ -129,7 +129,7 @@ void FOPUSModule::CreateWindow()
 {
 	SAssignNew(MainWindow, SWindow)
 		.Title(LOCTEXT("WindowTitle", "OPUS API"))
-		.ClientSize(FVector2D(800, 650))
+		.ClientSize(FVector2D(600, 700))
 		.IsInitiallyMaximized(false);
 
 	FSlateApplication::Get().AddWindow(MainWindow.ToSharedRef());

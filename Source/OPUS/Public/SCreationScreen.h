@@ -9,7 +9,8 @@
 #include "SFilteredSelectionTextBox.h"
 
 
-DECLARE_MULTICAST_DELEGATE(FOnQueueScreenEnabled);
+//DECLARE_MULTICAST_DELEGATE(FOnQueueScreenEnabled);
+DECLARE_MULTICAST_DELEGATE(FOnQueueScreenEnabled)
 DECLARE_MULTICAST_DELEGATE(FOnLogout);
 DECLARE_MULTICAST_DELEGATE(FOnJobCompleted);
 
@@ -32,7 +33,8 @@ public:
 
 private:
 	//STRUCT DEFINITIONS
-	struct Param {
+	struct Param 
+	{
 		TArray<float> range;
 		FString type;
 		FString attribute;
@@ -79,9 +81,11 @@ private:
 // ------------------------------
 
 	TSharedRef<SWidget> GenerateComboBoxItem(TSharedPtr<FString> Item);
-	void ComboBoxSelectionChanged(TSharedPtr<FString> Item, ESelectInfo::Type SelectInfo);
-	FText GetCurrentItem() const;
-	void KeywordsComboBoxSelectionChanged(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);
+	void ModelComboBoxSelectionChanged(TSharedPtr<FString> NewItem, ESelectInfo::Type SelectInfo);
+	void FileTypeComboBoxSelectionChanged(TSharedPtr<FString> NewItem, ESelectInfo::Type SelectInfo);
+	void TextureSizeComboBoxSelectionChanged(TSharedPtr<FString> NewItem, ESelectInfo::Type SelectInfo);
+	void SetUpTextureSizeComboBox();
+	void SetUpFileTypeComboBox();
 
 // ------------------------------
 // --- TABLE METHODS ------------
@@ -99,7 +103,6 @@ private:
 	void OnTagsSearchTextChanged(const FText& NewText);
 	void ParseTagInput(const FText& TagInputText);
 	void ParseParameterInput(const FText& TagInputText);
-
 	void OnTagSelected(TSharedPtr<FString> SelectedTag);
 	void OnParameterSelected(TSharedPtr<FString> ParameterSelection);
 	void OnTextCommittedInParameterInput(const FText& Text, ETextCommit::Type CommitMethod);
@@ -113,6 +116,9 @@ private:
 	FReply ShowWarningWindow(FString warningMessage);
 	EVisibility GetParamInputBoxVisibility() const;
 	FText GetParamHintText() const;
+	FText GetCurrentModel() const;
+	FText GetCurrentFileType() const;
+	FText GetCurrentTextureSize() const;
 
 private:
 	FString APIKey;
@@ -129,19 +135,28 @@ private:
 	FString ThirdAPIResponse;
 	int32 CurrentQueueIndex = 0;
 	int32 SelectedJobIndex = -1;
-	bool IsFBXSelected = true;
-	bool IsGLTFSelected = false;
 
 	//BUTTONS
 	TSharedPtr<SButton> CreateButton;
 
-	//COMBOBOX DEFINITIONS
+	// COMBOBOX DEFINITIONS
+	// Model Box
 	TSharedPtr<FString> CurrentModel;
 	TArray<TSharedPtr<FString>> ModelOptions;
 	TSharedPtr<SComboBox<TSharedPtr<FString>>> ModelComboBox;
 	TArray<TSharedPtr<FString>> Structures;
 
-	//TABLE RELATED
+	// File Type Box
+	TSharedPtr<SComboBox<TSharedPtr<FString>>> FileTypeComboBox;
+	TArray<TSharedPtr<FString>> AvailableFileTypes;
+	TSharedPtr<FString> CurrentFileType;
+
+	// Texture Size Box
+	TSharedPtr<SComboBox<TSharedPtr<FString>>> TextureSizeComboBox;
+	TArray<TSharedPtr<FString>> AvailableTextureSizes;
+	TSharedPtr<FString> CurrentTextureSize;
+
+	// TABLE RELATED
 	TArray<TSharedPtr<FKeywordTableRow>> TableRows;
 	TSharedPtr<SListView<TSharedPtr<FKeywordTableRow>>> TableView;
 
