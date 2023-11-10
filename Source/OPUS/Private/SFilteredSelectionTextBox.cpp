@@ -41,11 +41,11 @@ void SFilteredSelectionTextBox::Construct(const FArguments& InArgs)
                         + SScrollBox::Slot()
                         [
                             SAssignNew(SuggestionsListView, SListView<TSharedPtr<FString>>)
-                                .ItemHeight(24)
-                                .ListItemsSource(InArgs._ListItemsSource)
-                                .OnGenerateRow(this, &SFilteredSelectionTextBox::GenerateSuggestionRow)
-                                .Visibility(EVisibility::Collapsed)
-                                .SelectionMode(ESelectionMode::Single)
+                            .ItemHeight(24)
+                            .ListItemsSource(InArgs._ListItemsSource)
+                            .OnGenerateRow(this, &SFilteredSelectionTextBox::GenerateSuggestionRow)
+                            .Visibility(EVisibility::Collapsed)
+                            .SelectionMode(ESelectionMode::Multi)
                         ]
                 ]
             ]
@@ -80,33 +80,47 @@ TSharedRef<ITableRow> SFilteredSelectionTextBox::GenerateSuggestionRow(TSharedPt
     TSharedRef EditableTextBoxRef = EditableTextBox.ToSharedRef();
     return SNew(STableRow<TSharedPtr<FString>>, OwnerTable)
         [
-            SNew(SButton)
-                .Text(FText::FromString(*Suggestion))
-                .OnClicked(this, &SFilteredSelectionTextBox::OnSuggestionRowClicked, Suggestion)
+            /*SNew(SHorizontalBox)
+
+                +SHorizontalBox::Slot()
+                .AutoWidth()
+                [
+                    SNew(SCheckBox)
+                    .OnCheckStateChanged_Raw(this, &SFilteredSelectionTextBox::SelectionChanged)
+                    
+                ]
+
+                + SHorizontalBox::Slot()
+                .AutoWidth()
+                [*/
+                    SNew(SButton)
+                    .Text(FText::FromString(*Suggestion))
+                    .OnClicked(this, &SFilteredSelectionTextBox::OnSuggestionRowClicked, Suggestion)
+                //]
         ];
 }
 
 FReply SFilteredSelectionTextBox::OnSuggestionRowClicked(TSharedPtr<FString> Suggestion)
 {
-    if (EditableTextBox.IsValid())
-    {
-        // Set the full suggestion (i.e., "SubCategory - Tag") in the search box
-        EditableTextBox->SetText(FText::FromString(*Suggestion));
-    }
+    //if (EditableTextBox.IsValid())
+    //{
+    //    // Set the full suggestion (i.e., "SubCategory - Tag") in the search box
+    //    //EditableTextBox->SetText(FText::FromString(*Suggestion));
+    //}
 
     // Set the selected tag suggestion
     OnSuggestionSelected.Broadcast(Suggestion);
 
     // Clear the filtered tag suggestions
-    FilteredSuggestions.Empty();
+    //FilteredSuggestions.Empty();
 
     // Refresh the tag suggestions list view
-    SuggestionsListView->RequestListRefresh();
-    SuggestionsListView->Invalidate(EInvalidateWidget::Layout);
-    SuggestionsListView->SetVisibility(EVisibility::Collapsed); // This will hide the tag suggestions view.
+    //SuggestionsListView->RequestListRefresh();
+    //SuggestionsListView->Invalidate(EInvalidateWidget::Layout);
+    //SuggestionsListView->SetVisibility(EVisibility::Collapsed); // This will hide the tag suggestions view.
 
-    TSharedPtr<SWidget> FocusTarget = GetParentWidget();
-    FSlateApplication::Get().SetUserFocus(KeyboardUserIndex, FocusTarget);
+    /*TSharedPtr<SWidget> FocusTarget = GetParentWidget();
+    FSlateApplication::Get().SetUserFocus(KeyboardUserIndex, FocusTarget);*/
 
     return FReply::Handled();
 }

@@ -4,6 +4,7 @@
 #include "C:/Users/capoom/Documents/Unreal Projects/OPUSTest1/Plugins/OPUS/Source/OPUS/Private/OPUSCommands.cpp"
 #include "C:/Users/capoom/Documents/Unreal Projects/OPUSTest1/Plugins/OPUS/Source/OPUS/Private/OPUSStyle.cpp"
 #include "C:/Users/capoom/Documents/Unreal Projects/OPUSTest1/Plugins/OPUS/Source/OPUS/Private/SCreationScreen.cpp"
+#include "C:/Users/capoom/Documents/Unreal Projects/OPUSTest1/Plugins/OPUS/Source/OPUS/Private/SCustomizationTable.cpp"
 #include "C:/Users/capoom/Documents/Unreal Projects/OPUSTest1/Plugins/OPUS/Source/OPUS/Private/SFilteredSelectionTextBox.cpp"
 #include "C:/Users/capoom/Documents/Unreal Projects/OPUSTest1/Plugins/OPUS/Source/OPUS/Private/SLoginScreen.cpp"
 #include "C:/Users/capoom/Documents/Unreal Projects/OPUSTest1/Plugins/OPUS/Source/OPUS/Private/SQueueScreen.cpp"

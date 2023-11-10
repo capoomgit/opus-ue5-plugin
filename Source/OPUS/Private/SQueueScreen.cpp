@@ -250,7 +250,6 @@ TSharedRef<ITableRow> SQueueScreen::OnGenerateRowForList(TSharedPtr<FQueueRow> I
                         .Text(FText::FromString(TEXT("+")))
                         .OnClicked_Lambda([this, CurrentIndex]() {
                         if (QueueData[CurrentIndex]->Status == TEXT("COMPLETED")) {
-                            // TODO Download and unzip using 7zip
                             DownloadAndUnzipMethod(QueueData[CurrentIndex]->DownloadLink, QueueData[CurrentIndex]->DateTime, QueueData[CurrentIndex]->Job);
                             NotificationHelper.ShowNotificationSuccess(LOCTEXT("Success", "The addition of the component is in progress. This might take some time varying the size of the job."));
                         }
@@ -536,7 +535,7 @@ void SQueueScreen::OnSecondAPIRequestJobResultCompleted(FHttpRequestPtr Request,
         if (FJsonSerializer::Deserialize(Reader, JsonObject))
         {
             FString status;
-            if (JsonObject->TryGetStringField("job_status", status))
+            if (JsonObject->TryGetStringField("overall_status", status))
             {
                 UE_LOG(LogTemp, Warning, TEXT("JobID from response: %s"), *jobID);
 
@@ -555,38 +554,44 @@ void SQueueScreen::OnSecondAPIRequestJobResultCompleted(FHttpRequestPtr Request,
 
                 if (status == "COMPLETED")
                 {
-                    TSharedPtr<FJsonObject> urlsObject = JsonObject->GetObjectField("urls");
-                    if (urlsObject.IsValid())
+                    // When you create batch job implementatıon make this store all links cleanly
+                    TArray<TSharedPtr<FJsonValue>> ResultsArray = JsonObject->GetArrayField("results");
+                    if (ResultsArray.IsValidIndex(0))
                     {
-
-                        for (TSharedPtr<FString> CurrentFileType : AvailableFileTypes)
+                        TSharedPtr<FJsonValue> Result = ResultsArray[0];
+                        TSharedPtr<FJsonObject> urlsObject = Result->AsObject()->GetObjectField("urls");
+                        if (urlsObject.IsValid())
                         {
-                            FString link;
 
-                            if (urlsObject->TryGetStringField(*CurrentFileType, link))
+                            for (TSharedPtr<FString> CurrentFileType : AvailableFileTypes)
                             {
-                                SecondAPILink = link;
-                                UE_LOG(LogTemp, Warning, TEXT("API link: %s for file type %s"), *SecondAPILink, **CurrentFileType);
+                                FString link;
 
-                                for (auto& jobData : QueueData)
+                                if (urlsObject->TryGetStringField(*CurrentFileType, link))
                                 {
-                                    if (jobData->JobID == jobID)
-                                    {
-                                        jobData->DownloadLink = link;
-                                        break;
-                                    }
-                                }
+                                    SecondAPILink = link;
+                                    UE_LOG(LogTemp, Warning, TEXT("API link: %s for file type %s"), *SecondAPILink, **CurrentFileType);
 
-                                WriteQueueToFile();
-                                QueueListView->RequestListRefresh();
-                                // just gets link for one file type
-                                break;
+                                    for (auto& jobData : QueueData)
+                                    {
+                                        if (jobData->JobID == jobID)
+                                        {
+                                            jobData->DownloadLink = link;
+                                            break;
+                                        }
+                                    }
+
+                                    WriteQueueToFile();
+                                    QueueListView->RequestListRefresh();
+                                    // just gets link for one file type
+                                    break;
+                                }
                             }
                         }
-                    }
-                    else
-                    {
-                        UE_LOG(LogTemp, Warning, TEXT("Urls object is not valid"));
+                        else
+                        {
+                            UE_LOG(LogTemp, Warning, TEXT("Urls object is not valid"));
+                        }
                     }
                 }
                 else

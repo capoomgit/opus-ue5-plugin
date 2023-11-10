@@ -6,6 +6,7 @@
 #include "OPUSStyle.h"
 #include "SFilteredSelectionTextBox.h"
 #include "URLHelper.h"
+#include "SCustomizationTable.h"
 
 // Libraries
 #include "Misc/FileHelper.h"
@@ -211,37 +212,6 @@ void SCreationScreen::Construct(const FArguments& InArgs)
                                 SNew(SHorizontalBox)
 
                                     + SHorizontalBox::Slot()
-                                    .AutoWidth()
-                                    [
-                                        SNew(SBox)
-                                        .WidthOverride(130)  // Adjusted width
-                                        .HeightOverride(50)  // Adjusted height
-                                        [
-                                            SAssignNew(ParamInputBox, SEditableTextBox)
-                                            .HintText(this, &SCreationScreen::GetParamHintText)
-                                            .OnTextCommitted(this, &SCreationScreen::OnTextCommittedInParameterInput)
-                                        ]
-                                    ]
-
-                                    + SHorizontalBox::Slot()
-                                    .HAlign(HAlign_Right)
-                                    .AutoWidth()
-                                    .Padding(20, 0, 0, 0)
-                                    [
-                                        SNew(SBox)
-                                        .WidthOverride(115)  // Adjusted button width
-                                        .HeightOverride(50)  // Adjusted button height
-                                        [
-                                            SNew(SButton)
-                                            .VAlign(VAlign_Center)
-                                            .HAlign(HAlign_Center)
-                                            .Text(LOCTEXT("AddFeatureButton", "Add"))
-                                            .OnClicked(this, &SCreationScreen::ApplyFeatureButtonClicked)
-                                            .Visibility(EVisibility::Visible) // Always visible
-                                        ]
-                                    ]
-
-                                    + SHorizontalBox::Slot()
                                     .HAlign(HAlign_Right)
                                     .AutoWidth()
                                     .Padding(20, 0, 0, 0)
@@ -263,37 +233,7 @@ void SCreationScreen::Construct(const FArguments& InArgs)
                             .AutoHeight()
                             .Padding(30, 10, 30, 0)
                             [
-                                SNew(SScrollBox)
-                                    + SScrollBox::Slot()
-                                    [
-                                        SNew(SBox)
-                                        .WidthOverride(300) // Adjust this based on your needs
-                                        .HeightOverride(200) // Adjust this based on your needs
-                                        [
-                                            SNew(SBorder)
-                                            .BorderImage(FCoreStyle::Get().GetBrush("GenericWhiteBox"))
-                                            .BorderBackgroundColor(FLinearColor::Black)
-                                            .Padding(FMargin(1))
-                                            [
-                                                SAssignNew(TableView, SListView<TSharedPtr<FKeywordTableRow>>)
-                                                .ItemHeight(24)
-                                                .ListItemsSource(&TableRows)
-                                                .OnGenerateRow(this, &SCreationScreen::GenerateTableRow)
-                                                .SelectionMode(ESelectionMode::Single)
-                                                .HeaderRow
-                                                (
-                                                    SNew(SHeaderRow)
-                                                    + SHeaderRow::Column("CustomizationsColumn")
-                                                    .DefaultLabel(LOCTEXT("CustomizationsHeader", "Current Model Customizations"))
-                                                    .FillWidth(0.7f)
-
-                                                    + SHeaderRow::Column("InputColumn")
-                                                    .DefaultLabel(LOCTEXT("InputColumnHeader", "Input"))
-                                                    .FillWidth(0.3f)
-                                                )
-                                            ]
-                                        ]
-                                    ]
+                                SAssignNew(CustomizationTable, SCustomizationTable)
                             ]
 
                             + SVerticalBox::Slot()
@@ -353,40 +293,9 @@ FReply SCreationScreen::LogoutButtonClicked()
     return FReply::Handled();
 }
 
-FReply SCreationScreen::ApplyFeatureButtonClicked()
-{
-    // TODO Show warning before reseting everything
-    UE_LOG(LogTemp, Warning, TEXT("ApplyFeatureButtonClicked called!"));
-
-    if (TagSearchBox.IsValid())
-    {
-        ParseTagInput(TagSearchBox->GetText());
-    }
-
-    // Handling for ParamInputBox
-    if (SelectedParameterSuggestion.IsValid() && CurrentParameterRange != FVector2D::ZeroVector)
-    {
-        ParseParameterInput(ParamInputBox->GetText());
-    }
-
-    // Clear selection
-    SelectedTagSuggestion = nullptr;
-    SelectedParameterSuggestion = nullptr;
-    CurrentParameterRange = FVector2D::Zero();
-    TagSearchBox->SetText(FText::GetEmpty());
-    ParameterSearchBox->SetText(FText::GetEmpty());
-    GetParamHintText();
-
-    // Clear table
-    TableView->RequestListRefresh();
-    TableView->Invalidate(EInvalidateWidget::LayoutAndVolatility);
-
-    return FReply::Handled();
-}
-
 FReply SCreationScreen::ResetFeaturesButtonClicked()
 {
-    ResetTable();
+    CustomizationTable->ResetTable();
     return FReply::Handled();
 }
 
@@ -425,7 +334,7 @@ void SCreationScreen::ModelComboBoxSelectionChanged(TSharedPtr<FString> NewItem,
         ParameterFilteredSuggestions.Empty();
         TagFilteredSuggestions.Empty();
 
-        ResetTable();
+        CustomizationTable->ResetTable();
 
         // Make an API call with the new item
         SendThirdAPIRequest_AttributeName();
@@ -483,10 +392,10 @@ void SCreationScreen::OnTagsSearchTextChanged(const FText& NewText)
         if (CurrentPair->Tag.Contains(CurrentInput))
         {
             // Loop through rows in the customizations table
-            for (const TSharedPtr<FKeywordTableRow> Row : TableRows)
+            for (const TSharedPtr<FKeywordTableRow> Row : CustomizationTable->TableRows)
             {
                 // Check if subcategory tag already assigned
-                if (Row->Keyword->Equals(CurrentPair->SubCategory))
+                if (Row->Customization->Equals(CurrentPair->SubCategory))
                 {
                     TagCategoryAlreadyAdded = true;
                     break;
@@ -509,17 +418,6 @@ void SCreationScreen::OnParamSearchTextChanged(const FText& NewText)
     ParameterFilteredSuggestions.Empty();
 
     FString CurrentInput = NewText.ToString();
-
-    if (ParameterRanges.Contains(CurrentInput))
-    {
-        SelectedParameterSuggestion = MakeShared<FString>(CurrentInput);
-    }
-    else
-    {
-        SelectedParameterSuggestion.Reset();
-    }
-
-    ParamInputBox->SetText(FText::GetEmpty());
     
     for (const TSharedPtr<FString>& Suggestion : ParameterSuggestions)
     {
@@ -536,196 +434,26 @@ void SCreationScreen::OnParamSearchTextChanged(const FText& NewText)
 void SCreationScreen::OnTagSelected(TSharedPtr<FString> TagSelection)
 {
     SelectedTagSuggestion = TagSelection;
+    CustomizationTable->AddCustomizationToTable(TagSelection, false);
 }
 
 void SCreationScreen::OnParameterSelected(TSharedPtr<FString> ParameterSelection)
 {
     SelectedParameterSuggestion = ParameterSelection;
-
-    // Fetch the parameter range for the selected suggestion
-    if (ParameterRanges.Contains(*ParameterSelection))
-    {
-        CurrentParameterRange = ParameterRanges[*ParameterSelection];
-    }
-    else
-    {
-        CurrentParameterRange = FVector2D::ZeroVector; // default value if not found
-    }
+    CustomizationTable->AddCustomizationToTable(ParameterSelection, true);
 }
 
-void SCreationScreen::OnTextCommittedInParameterInput(const FText& Text, ETextCommit::Type CommitMethod)
-{
-    if (CommitMethod == ETextCommit::OnEnter)
-    {
-        ApplyFeatureButtonClicked(); // You can call your login function directly here
-    }
-}
 // ------------------------------
 // --- TABLE METHODS
 // ------------------------------
 
-TSharedRef<ITableRow> SCreationScreen::GenerateTableRow(TSharedPtr<FKeywordTableRow> RowData, const TSharedRef<STableViewBase>& OwnerTable)
-{
-    return SNew(STableRow<TSharedPtr<FKeywordTableRow>>, OwnerTable)
-        [
-            SNew(SHorizontalBox)
 
-                // Keyword column
-                + SHorizontalBox::Slot()
-                .FillWidth(1.5)
-                .Padding(5, 0, 0, 0)
-                [
-                    SNew(STextBlock)
-                        .Text(FText::FromString(*(RowData->Keyword)))
-                ]
-
-                // Value column
-                + SHorizontalBox::Slot()
-                .AutoWidth()
-                .Padding(0, 0, 5, 0)
-                [
-                    SNew(STextBlock)
-                        .Text(this, &SCreationScreen::GetKeywordValue, RowData)
-                ]
-
-                // Remove button
-                + SHorizontalBox::Slot()
-                .AutoWidth()
-                [
-                    SNew(SButton)
-                        .Text(FText::FromString(TEXT("×")))
-                        .OnClicked_Lambda([this, RowData]() -> FReply 
-                            {
-                                TableRows.Remove(RowData);
-                                TableView->RequestListRefresh();
-                                return FReply::Handled();
-                            })
-                ]
-        ];
-}
-
-FText SCreationScreen::GetKeywordValue(TSharedPtr<FKeywordTableRow> RowData) const
-{
-    return FText::FromString(*RowData->Value);
-}
-
-void SCreationScreen::ResetTable()
-{
-    TableRows.Empty();
-    if (TableView.IsValid())
-    {
-        TableView->RequestListRefresh();
-    }
-}
 
 // ------------------------------
 // --- HELPER METHODS
 // ------------------------------
 
 void SCreationScreen::SetAPIKey(FString apiKey) { APIKey = apiKey; }
-
-void SCreationScreen::ParseTagInput(const FText& TagInputText)
-{
-    FString TagBoxContent = TagInputText.ToString();
-    TArray<FString> ParsedStrings;
-
-    bool bFound = false;
-
-    if (TagBoxContent.ParseIntoArray(ParsedStrings, TEXT(" - "), true) == 2)
-    {
-        TSharedPtr<FString> MainCategory = MakeShared<FString>(ParsedStrings[0].TrimStartAndEnd());
-        TSharedPtr<FString> CurrentTag = MakeShared<FString>(ParsedStrings[1].TrimStartAndEnd());
-
-        for (TSharedPtr<FKeywordTableRow>& existingRow : TableRows)
-        {
-            if (existingRow->Keyword->Equals(*MainCategory))
-            {
-                if (IsParameter(*MainCategory))  // Assuming IsParameter checks if it's a parameter
-                {
-                    existingRow->Value = CurrentTag;  // Update the value only
-                    bFound = true;
-                    break;
-                }
-                else // Check for non-parameter type
-                {
-                    if (existingRow->Value->Equals(*CurrentTag))
-                    {
-                        // Skip adding if a row with same keyword and value already exists
-                        bFound = true;
-                        break;
-                    }
-                }
-            }
-        }
-
-        if (!bFound)
-        {
-            // Add new row if tag doesnt exist in table
-            TSharedPtr<FKeywordTableRow> newRow = MakeShared<FKeywordTableRow>();
-            newRow->Keyword = MainCategory;
-            newRow->Value = CurrentTag;
-            TableRows.Add(newRow);
-            UE_LOG(LogTemp, Warning, TEXT("New Row Added! Main Category: %s, Tag: %s"), **newRow->Keyword, **newRow->Value);
-        }
-
-        TableView->RequestListRefresh();
-        TableView->Invalidate(EInvalidateWidget::LayoutAndVolatility);
-    }
-    else
-    {
-        UE_LOG(LogTemp, Warning, TEXT("The TagsSearchBox content format is invalid!"));
-    }
-}
-
-void SCreationScreen::ParseParameterInput(const FText& ParameterInputText)
-{
-    bool bFoundParam = false;
-    FString ParamInputContent = ParameterInputText.ToString();
-    float InputValue;
-
-    // Handle input starting with decimal point, make ".2" into "0.2"
-    if (ParamInputContent.StartsWith("."))
-    {
-        FString DecimalString = "0";
-        DecimalString.Append(ParamInputContent);
-        ParamInputContent = DecimalString;
-    }
-
-    //TODO: this section must be revised to a proper try-catch structure
-    if (FDefaultValueHelper::ParseFloat(ParamInputContent, InputValue))
-    {
-        if (InputValue >= CurrentParameterRange.X && InputValue <= CurrentParameterRange.Y)
-        {
-            for (TSharedPtr<FKeywordTableRow>& existingRow : TableRows)
-            {
-                if (existingRow->Keyword->Equals(*SelectedParameterSuggestion))
-                {
-                    existingRow->Value = MakeShared<FString>(ParamInputContent);
-                    bFoundParam = true;
-                    break;
-                }
-            }
-
-            if (!bFoundParam)
-            {
-                TSharedPtr<FKeywordTableRow> newRow = MakeShared<FKeywordTableRow>();
-                newRow->Keyword = SelectedParameterSuggestion;
-                newRow->Value = MakeShared<FString>(ParamInputContent);
-                TableRows.Add(newRow);
-                UE_LOG(LogTemp, Warning, TEXT("New Parameter Row Added! Parameter: %s, Value: %s"), **newRow->Keyword, **newRow->Value);
-            }
-        }
-        else
-        {
-            ShowWarningWindow("Parameter input is out of given range");
-        }
-    }
-    else
-    {
-        ShowWarningWindow("Parameter input is not a number");
-        UE_LOG(LogTemp, Warning, TEXT("The input for the parameter is not a valid number!"));
-    }
-}
 
 FText SCreationScreen::GetCurrentModel() const
 {
@@ -754,12 +482,12 @@ FText SCreationScreen::GetCurrentTextureSize() const
     return FText::GetEmpty();
 }
 
-FText SCreationScreen::GetParamHintText() const
+FText SCreationScreen::GetParamHintText(FVector2D ParameterRange) const
 {
-    if (CurrentParameterRange != FVector2D::ZeroVector)
+    if (ParameterRange != FVector2D::ZeroVector)
     {
-        FString RangeLow = FString::SanitizeFloat(CurrentParameterRange.X);
-        FString RangeHigh = FString::SanitizeFloat(CurrentParameterRange.Y);
+        FString RangeLow = FString::SanitizeFloat(ParameterRange.X);
+        FString RangeHigh = FString::SanitizeFloat(ParameterRange.Y);
         return FText::Format(LOCTEXT("ParamRangeHint", "Range: {0} - {1}"), FText::FromString(RangeLow), FText::FromString(RangeHigh));
     }
     else
@@ -820,16 +548,16 @@ FReply SCreationScreen::ShowWarningWindow(FString warningMessage)
     return FReply::Handled();
 }
 
-FString SCreationScreen::ConstructJSONData()
+FString SCreationScreen::ConstructCreateRequestBody()
 {
     TMap<FString, TArray<FString>> KeywordMap;
 
     // Populate the KeywordMap
-    for (TSharedPtr<FKeywordTableRow>& row : TableRows)
+    for (TSharedPtr<FKeywordTableRow>& row : CustomizationTable->TableRows)
     {
-        if (!IsParameter(*row->Keyword))  // Check if it is not a parameter
+        if (!IsCustomization(*row->Customization))  // Check if it is not a parameter
         {
-            KeywordMap.FindOrAdd(*row->Keyword).Add(*row->Value);
+            KeywordMap.FindOrAdd(*row->Customization).Add(*row->Value);
         }
     }
 
@@ -842,16 +570,16 @@ FString SCreationScreen::ConstructJSONData()
     // Constructing parameters (No changes here)
     JsonData += "    \"parameters\": {\r\n";
     bool isFirstParameter = true;
-    for (TSharedPtr<FKeywordTableRow>& row : TableRows)
+    for (TSharedPtr<FKeywordTableRow>& row : CustomizationTable->TableRows)
     {
-        if (IsParameter(*row->Keyword))  // Check if it is a parameter
+        if (IsCustomization(*row->Customization))  // Check if it is a parameter
         {
             if (!isFirstParameter)
             {
                 JsonData += ",\r\n";
             }
             isFirstParameter = false;
-            JsonData += "        \"" + *row->Keyword + "\": " + *row->Value;
+            JsonData += "        \"" + *row->Customization + "\": " + *row->Value;
         }
     }
     JsonData += "\r\n    },\r\n";
@@ -885,7 +613,7 @@ FString SCreationScreen::ConstructJSONData()
     return JsonData;
 }
 
-bool SCreationScreen::IsParameter(const FString& Keyword)
+bool SCreationScreen::IsCustomization(const FString& Keyword)
 {
     return Keyword.Contains("/");  // Adjust this if the criteria change
 }
@@ -898,7 +626,10 @@ void SCreationScreen::SendAPIRequest_Create()
 {
     // Disable create button
     CreateButton->SetEnabled(false);
-    FString Url = URLHelper::CreateComponent;
+    FString Url = URLHelper::CreateBatchComponent;
+    // When you want to create more objects using create batch
+    FString Parameters = "?count=1";
+    Url += Parameters;
 
     for (const auto& structure : Structures)
     {
@@ -910,7 +641,7 @@ void SCreationScreen::SendAPIRequest_Create()
         }
     }
 
-    FString JsonData = ConstructJSONData();
+    FString JsonData = ConstructCreateRequestBody();
 
     TSharedRef<IHttpRequest, ESPMode::ThreadSafe> HttpRequest = FHttpModule::Get().CreateRequest();
     HttpRequest->SetURL(Url);
@@ -942,7 +673,7 @@ void SCreationScreen::OnAPIRequestCreateCompleted(FHttpRequestPtr Request, FHttp
         if (FJsonSerializer::Deserialize(Reader, JsonObject))
         {
             FString status;
-            if (JsonObject->TryGetStringField("job_status", status))
+            if (JsonObject->TryGetStringField("overall_status", status))
             {
                 UE_LOG(LogTemp, Warning, TEXT("Job status: %s"), *status);
                 NewJobStatus = status;
@@ -952,13 +683,13 @@ void SCreationScreen::OnAPIRequestCreateCompleted(FHttpRequestPtr Request, FHttp
                 UE_LOG(LogTemp, Warning, TEXT("Failed to get job status"));
             }
 
-            FString ResultID;
-            if (JsonObject->TryGetStringField("result_id", ResultID))
+            FString JobID;
+            if (JsonObject->TryGetStringField("batch_job_id", JobID))
             {
-                APIResponseID = ResultID;
+                APIResponseID = JobID;
 
                 UE_LOG(LogTemp, Warning, TEXT("HTTP Request successful. Response Code: %d, Response Data: %s"), ResponseCode, *ResponseStr);
-                UE_LOG(LogTemp, Warning, TEXT("API Response ID: %s"), *APIResponseID);
+                UE_LOG(LogTemp, Warning, TEXT("Response Job ID: %s"), *APIResponseID);
 
                 NotificationHelper.ShowNotificationSuccess(LOCTEXT("IDSuccess", "Job ID succesfully created!!"));
 
@@ -978,16 +709,18 @@ void SCreationScreen::OnAPIRequestCreateCompleted(FHttpRequestPtr Request, FHttp
             else
             {
                 UE_LOG(LogTemp, Error, TEXT("API Response does not contain \"result_id\" field."));
+                NotificationHelper.ShowNotificationFail(LOCTEXT("Failed", "Failed to create ID.  Please check logs and try again."));
             }
         }
         else
         {
             UE_LOG(LogTemp, Error, TEXT("Failed to parse JSON response."));
+            NotificationHelper.ShowNotificationFail(LOCTEXT("Failed", "Failed to create ID. Please check logs and try again."));
         }
     }
     else
     {
-        NotificationHelper.ShowNotificationFail(LOCTEXT("Failed", "Failed to create ID. Please try again later."));
+        NotificationHelper.ShowNotificationFail(LOCTEXT("Failed", "Failed to create ID. Please check logs and try again."));
         ShowWarningWindow("Failed to create ID. Please try again later.");
         UE_LOG(LogTemp, Error, TEXT("HTTP Create Model Request failed."));
         if (Response.IsValid())
@@ -1128,7 +861,7 @@ void SCreationScreen::OnThirdAPIRequestAttributeNameCompleted(FHttpRequestPtr Re
                                                 float MaxValue = (*RangeArray)[1]->AsNumber();
 
                                                 // Store this in the map
-                                                ParameterRanges.Add(AssetParameterCombination, FVector2D(MinValue, MaxValue));
+                                                CustomizationTable->ParameterRanges.Add(AssetParameterCombination, FVector2D(MinValue, MaxValue));
 
                                                 for (const auto& RangeValue : *RangeArray)
                                                 {

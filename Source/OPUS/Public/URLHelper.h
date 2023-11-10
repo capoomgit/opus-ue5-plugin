@@ -8,6 +8,7 @@ public:
 	static FString ApiUrl;
 	static FString GetModels;
 	static FString CreateComponent;
+	static FString CreateBatchComponent;
 	static FString CreateStructure;
 	static FString GetAttributesWithName;
 	static FString GetJobResults;

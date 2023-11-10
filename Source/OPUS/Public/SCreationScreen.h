@@ -7,6 +7,7 @@
 #include "Http.h"
 #include "EditorNotificationHelper.h"
 #include "SFilteredSelectionTextBox.h"
+#include"SCustomizationTable.h"
 
 
 //DECLARE_MULTICAST_DELEGATE(FOnQueueScreenEnabled);
@@ -44,11 +45,6 @@ private:
 		FString SubCategory;
 		FString Tag;
 	};
-	struct FKeywordTableRow
-	{
-		TSharedPtr<FString> Keyword;
-		TSharedPtr<FString> Value;
-	};
 	
 private: 
 
@@ -57,7 +53,6 @@ private:
 // ------------------------------
 	FReply LogoutButtonClicked();
 	FReply CreateButtonClicked();
-	FReply ApplyFeatureButtonClicked();
 	FReply ResetFeaturesButtonClicked();
 	FReply QueueButtonClicked();
 	FReply ReturnButtonClicked();
@@ -91,9 +86,7 @@ private:
 // --- TABLE METHODS ------------
 // ------------------------------
 
-	TSharedRef<ITableRow> GenerateTableRow(TSharedPtr<FKeywordTableRow> RowData, const TSharedRef<STableViewBase>& OwnerTable);
-	FText GetKeywordValue(TSharedPtr<FKeywordTableRow> RowData) const;
-	void ResetTable();
+	
 
 // ------------------------------
 // --- SEARCHBOX METHODS --------
@@ -101,8 +94,6 @@ private:
 
 	void OnParamSearchTextChanged(const FText& NewText);
 	void OnTagsSearchTextChanged(const FText& NewText);
-	void ParseTagInput(const FText& TagInputText);
-	void ParseParameterInput(const FText& TagInputText);
 	void OnTagSelected(TSharedPtr<FString> SelectedTag);
 	void OnParameterSelected(TSharedPtr<FString> ParameterSelection);
 	void OnTextCommittedInParameterInput(const FText& Text, ETextCommit::Type CommitMethod);
@@ -111,11 +102,11 @@ private:
 // --- HELPER METHODS -----------
 // ------------------------------
 
-	FString ConstructJSONData();
-	bool IsParameter(const FString& Keyword);
+	FString ConstructCreateRequestBody();
+	bool IsCustomization(const FString& Keyword);
 	FReply ShowWarningWindow(FString warningMessage);
 	EVisibility GetParamInputBoxVisibility() const;
-	FText GetParamHintText() const;
+	FText GetParamHintText(FVector2D ParameterRange) const;
 	FText GetCurrentModel() const;
 	FText GetCurrentFileType() const;
 	FText GetCurrentTextureSize() const;
@@ -125,9 +116,7 @@ private:
 	EditorNotificationHelper NotificationHelper;
 
 	// MEMBER VARIABLE DEFINITIONS
-	TMap<FString, FVector2D> ParameterRanges;		// A map to hold parameter names and their ranges.
 	FVector2D CurrentParameterRange;				// To store the range of the currently selected parameter.
-	TSharedPtr<SEditableTextBox> ParamInputBox;
 	FString APIResponseID;
 	FString JobStatus;
 	FString NewJobStatus;
@@ -157,8 +146,7 @@ private:
 	TSharedPtr<FString> CurrentTextureSize;
 
 	// TABLE RELATED
-	TArray<TSharedPtr<FKeywordTableRow>> TableRows;
-	TSharedPtr<SListView<TSharedPtr<FKeywordTableRow>>> TableView;
+	TSharedPtr<SCustomizationTable> CustomizationTable;
 
 	// MEMBER DEFINITIONS FOR PARAM SEARCHBOX
 	TArray<TSharedPtr<FString>> ParameterFilteredSuggestions;

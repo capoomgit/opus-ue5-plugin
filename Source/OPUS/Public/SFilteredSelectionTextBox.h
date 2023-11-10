@@ -55,6 +55,7 @@ public:
 
 private:
 	TSharedRef<ITableRow> GenerateSuggestionRow(TSharedPtr<FString> Suggestion, const TSharedRef<STableViewBase>& OwnerTable);
+	FReply SelectionChanged(ECheckBoxState NewState);
 	FReply OnSuggestionRowClicked(TSharedPtr<FString> Suggestion);
 	void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 	
