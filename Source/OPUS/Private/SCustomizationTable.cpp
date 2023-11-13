@@ -146,7 +146,7 @@ void SCustomizationTable::ParseTagInput(TSharedPtr<FString> TagInput)
 
         for (TSharedPtr<FKeywordTableRow>& existingRow : TableRows)
         {
-            if (existingRow->Customization->Equals(*MainCategory))
+            if (existingRow->Customization->Equals(*MainCategory) && existingRow->Value->Equals(*CurrentTag))
             {
                 existingRow->Value = CurrentTag;  // Update the value only
                 bFound = true;

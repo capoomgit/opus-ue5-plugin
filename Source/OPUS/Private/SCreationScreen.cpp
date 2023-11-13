@@ -63,8 +63,8 @@ void SCreationScreen::Construct(const FArguments& InArgs)
             .Padding(0, 80, 100, 0)
             [
                 SNew(SBox)
-                    .WidthOverride(112)
-                    .HeightOverride(83)
+                    .WidthOverride(135)
+                    .HeightOverride(100)
                     [
                         SNew(SImage)
                         .Image(FOPUSStyle::Get().GetBrush("OPUS.SmallLogo"))
@@ -209,30 +209,6 @@ void SCreationScreen::Construct(const FArguments& InArgs)
                             .AutoHeight()
                             .Padding(30, 10, 30, 0)
                             [
-                                SNew(SHorizontalBox)
-
-                                    + SHorizontalBox::Slot()
-                                    .HAlign(HAlign_Right)
-                                    .AutoWidth()
-                                    .Padding(20, 0, 0, 0)
-                                    [
-                                        SNew(SBox)
-                                        .WidthOverride(115)  // Adjusted button width
-                                        .HeightOverride(50)  // Adjusted button height
-                                        [
-                                            SNew(SButton)
-                                            .VAlign(VAlign_Center)
-                                            .HAlign(HAlign_Center)
-                                            .Text(LOCTEXT("ResetFeaturesButton", "Reset All"))
-                                            .OnClicked(this, &SCreationScreen::ResetFeaturesButtonClicked)
-                                            .Visibility(EVisibility::Visible) // Always visible
-                                        ]
-                                    ]
-                            ]
-                            + SVerticalBox::Slot()
-                            .AutoHeight()
-                            .Padding(30, 10, 30, 0)
-                            [
                                 SAssignNew(CustomizationTable, SCustomizationTable)
                             ]
 
@@ -242,16 +218,43 @@ void SCreationScreen::Construct(const FArguments& InArgs)
                             .AutoHeight()
                             .Padding(0, 10, 0, 0)
                             [
-                                SNew(SBox)
-                                .WidthOverride(130)
-                                .HeightOverride(50)
+                                SNew(SHorizontalBox)
+
+                                + SHorizontalBox::Slot()
+                                .HAlign(HAlign_Left)
+                                .AutoWidth()
+                                .Padding(30, 0, 0, 0)
                                 [
-                                    SAssignNew(CreateButton, SButton)
-                                    .VAlign(VAlign_Center)
-                                    .HAlign(HAlign_Center)
-                                    .Text(LOCTEXT("Generate Model", "Generate Model"))
-                                    .OnClicked(this, &SCreationScreen::CreateButtonClicked)
-                                    .ButtonColorAndOpacity(FLinearColor(0.3,1,0.3,1))
+                                    SNew(SBox)
+                                    .WidthOverride(115)  // Adjusted button width
+                                    .HeightOverride(50)  // Adjusted button height
+                                    [
+                                        SNew(SButton)
+                                        .VAlign(VAlign_Center)
+                                        .HAlign(HAlign_Center)
+                                        .Text(LOCTEXT("ResetFeaturesButton", "Reset All"))
+                                        .OnClicked(this, &SCreationScreen::ResetFeaturesButtonClicked)
+                                        .ButtonColorAndOpacity(FLinearColor(1, 0.3, 0.3, 1))
+
+                                    ]
+                                ]
+
+                                + SHorizontalBox::Slot()
+                                .HAlign(HAlign_Right)
+                                .AutoWidth()
+                                .Padding(30, 0, 30, 0)
+                                [
+                                    SNew(SBox)
+                                    .WidthOverride(130)
+                                    .HeightOverride(50)
+                                    [
+                                        SAssignNew(CreateButton, SButton)
+                                        .VAlign(VAlign_Center)
+                                        .HAlign(HAlign_Center)
+                                        .Text(LOCTEXT("Generate Model", "Generate Model"))
+                                        .OnClicked(this, &SCreationScreen::CreateButtonClicked)
+                                        .ButtonColorAndOpacity(FLinearColor(0.3, 1, 0.3, 1))
+                                    ]
                                 ]
                             ]
                     ]
@@ -295,7 +298,7 @@ FReply SCreationScreen::LogoutButtonClicked()
 
 FReply SCreationScreen::ResetFeaturesButtonClicked()
 {
-    CustomizationTable->ResetTable();
+    ShowResetCustomizationWarning();
     return FReply::Handled();
 }
 
@@ -444,12 +447,6 @@ void SCreationScreen::OnParameterSelected(TSharedPtr<FString> ParameterSelection
 }
 
 // ------------------------------
-// --- TABLE METHODS
-// ------------------------------
-
-
-
-// ------------------------------
 // --- HELPER METHODS
 // ------------------------------
 
@@ -482,6 +479,7 @@ FText SCreationScreen::GetCurrentTextureSize() const
     return FText::GetEmpty();
 }
 
+
 FText SCreationScreen::GetParamHintText(FVector2D ParameterRange) const
 {
     if (ParameterRange != FVector2D::ZeroVector)
@@ -506,7 +504,6 @@ FReply SCreationScreen::ShowWarningWindow(FString warningMessage)
 
     WarningWindowPtr = WarningWindow; // Store the window in the shared pointer
 
-    // dont make this come up every time
     FSlateApplication::Get().AddWindowAsNativeChild(WarningWindow, FSlateApplication::Get().GetActiveTopLevelWindow().ToSharedRef());
 
     WarningWindow->SetContent(
@@ -517,8 +514,56 @@ FReply SCreationScreen::ShowWarningWindow(FString warningMessage)
         .Padding(15)
         [
             SNew(STextBlock)
-                //TODO: this text needs to be changed in order to be clear
-                .Text(FText::FromString(warningMessage))
+            .Text(FText::FromString(warningMessage))
+            .Justification(ETextJustify::Center)
+        ]
+
+        + SVerticalBox::Slot()
+        .AutoHeight()
+        .HAlign(HAlign_Center)
+        .Padding(15)
+        [
+            SNew(SHorizontalBox)
+
+                + SHorizontalBox::Slot()
+                .AutoWidth()
+                [
+                    SNew(SButton)
+                    .Text(LOCTEXT("OKButton", "OK"))
+                    .OnClicked_Lambda([this, WarningWindowPtr]()
+                        {
+                            if (WarningWindowPtr.IsValid())
+                            {
+                                WarningWindowPtr->RequestDestroyWindow();
+                            }
+                            return FReply::Handled();
+                        })
+                ]
+        ]);
+    return FReply::Handled();
+}
+
+FReply SCreationScreen::ShowResetCustomizationWarning()
+{
+    TSharedPtr<SWindow> WarningWindowPtr; // Declare a shared pointer
+    TSharedRef<SWindow> WarningWindow = SNew(SWindow)
+        .Title(LOCTEXT("WarningTitle", "Warning"))
+        .ClientSize(FVector2D(600, 150))
+        .IsInitiallyMaximized(false);
+
+    WarningWindowPtr = WarningWindow; // Store the window in the shared pointer
+
+    FSlateApplication::Get().AddWindowAsNativeChild(WarningWindow, FSlateApplication::Get().GetActiveTopLevelWindow().ToSharedRef());
+
+    WarningWindow->SetContent(
+        SNew(SVerticalBox)
+
+        + SVerticalBox::Slot()
+        .AutoHeight()
+        .Padding(15)
+        [
+            SNew(STextBlock)
+                .Text(FText::FromString("You are reseting all current customizations, are you sure?"))
                 .Justification(ETextJustify::Center)
         ]
 
@@ -532,9 +577,24 @@ FReply SCreationScreen::ShowWarningWindow(FString warningMessage)
                 + SHorizontalBox::Slot()
                 .AutoWidth()
                 [
-                    //SUGGESTION: this button may direct the user to QUEUE screen
                     SNew(SButton)
-                        .Text(LOCTEXT("OKButton", "OK"))
+                        .Text(LOCTEXT("YesButton", "Yes"))
+                        .OnClicked_Lambda([this, WarningWindowPtr]()
+                            {
+                                if (WarningWindowPtr.IsValid())
+                                {
+                                    WarningWindowPtr->RequestDestroyWindow();
+                                    CustomizationTable->ResetTable();
+                                }
+                                return FReply::Handled();
+                            })
+                ]
+
+                + SHorizontalBox::Slot()
+                .AutoWidth()
+                [
+                    SNew(SButton)
+                        .Text(LOCTEXT("NoButton", "No"))
                         .OnClicked_Lambda([this, WarningWindowPtr]()
                             {
                                 if (WarningWindowPtr.IsValid())

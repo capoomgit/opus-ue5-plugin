@@ -105,6 +105,7 @@ private:
 	FString ConstructCreateRequestBody();
 	bool IsCustomization(const FString& Keyword);
 	FReply ShowWarningWindow(FString warningMessage);
+	FReply ShowResetCustomizationWarning();
 	EVisibility GetParamInputBoxVisibility() const;
 	FText GetParamHintText(FVector2D ParameterRange) const;
 	FText GetCurrentModel() const;
