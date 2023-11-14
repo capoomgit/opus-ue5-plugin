@@ -11,11 +11,9 @@
 #include "Http.h"
 #include "Async/Async.h"
 #include "Misc/FileHelper.h"
-
+#include "Widgets/Layout/SScrollBox.h"
 
 #define LOCTEXT_NAMESPACE "FOPUSModule"
-
-
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SLoginScreen::Construct(const FArguments& InArgs)
 {
@@ -23,104 +21,104 @@ void SLoginScreen::Construct(const FArguments& InArgs)
     if (CheckStoredAPIKey()) 
     {
         ChildSlot
+        [
+            SNew(SScrollBox)
+
+            + SScrollBox::Slot()
+            .VAlign(VAlign_Center)
+            .HAlign(HAlign_Center)
+            .Padding(0, -150, 0, 0)  // Move the image up
             [
-                SNew(SOverlay)
+                SNew(SImage)
+                    .Image(FOPUSStyle::Get().GetBrush("OPUS.APILogo"))
+            ]
 
-                    + SOverlay::Slot()
-                    .VAlign(VAlign_Center)
-                    .HAlign(HAlign_Center)
-                    .Padding(0, -150, 0, 0)  // Move the image up
-                    [
-                        SNew(SImage)
-                            .Image(FOPUSStyle::Get().GetBrush("OPUS.APILogo"))
-                    ]
-
-                    + SOverlay::Slot()
-                    .VAlign(VAlign_Center)
-                    .HAlign(HAlign_Center)
-                    [
-                        SNew(STextBlock)
-                            .Text(LOCTEXT("Logging in", "Logging in from previous API key"))
-                    ]
-            ];
+            + SScrollBox::Slot()
+            .VAlign(VAlign_Center)
+            .HAlign(HAlign_Center)
+            [
+                SNew(STextBlock)
+                    .Text(LOCTEXT("Logging in", "Logging in from previous API key"))
+            ]
+        ];
     }
     // If can't log in or no stored API key exists, show login screen
     else 
     {
         ChildSlot
+        [
+            SNew(SScrollBox)
+
+            + SScrollBox::Slot()
+            .VAlign(VAlign_Top)
+            .HAlign(HAlign_Center)
+            .Padding(0, 60, 0, 0)  // Move the image up
             [
-                SNew(SOverlay)
+                SNew(SImage)
+                .Image(FOPUSStyle::Get().GetBrush("OPUS.APILogo"))
+            ]
 
-                    + SOverlay::Slot()
-                    .VAlign(VAlign_Center)
-                    .HAlign(HAlign_Center)
-                    .Padding(-35, -150, 0, 0)  // Move the image up
+            + SScrollBox::Slot()
+            .VAlign(VAlign_Center)
+            .HAlign(HAlign_Center)
+            [
+                SNew(SVerticalBox)
+
+                + SVerticalBox::Slot()
+                .VAlign(VAlign_Center)
+                .HAlign(HAlign_Center)
+                [
+                    SNew(SHorizontalBox)
+
+                    + SHorizontalBox::Slot()
+                    .AutoWidth()
+                    .Padding(0, 0, 50, 0)
                     [
-                        SNew(SImage)
-                            .Image(FOPUSStyle::Get().GetBrush("OPUS.APILogo"))
-                    ]
+                        SNew(SBorder)
+                        .BorderImage(FCoreStyle::Get().GetBrush("Border"))
+                        .BorderBackgroundColor(FLinearColor::White)
+                        .Padding(FMargin(5.0f))
+                        [
+                            SNew(SHorizontalBox)
 
-                    + SOverlay::Slot()
-                    .VAlign(VAlign_Center)
-                    .HAlign(HAlign_Center)
-                    [
-                        SNew(SVerticalBox)
-
-                            + SVerticalBox::Slot()
-                            .VAlign(VAlign_Center)
-                            .HAlign(HAlign_Center)
+                            + SHorizontalBox::Slot()
+                            .AutoWidth()
                             [
-                                SNew(SHorizontalBox)
-
-                                    + SHorizontalBox::Slot()
-                                    .AutoWidth()
-                                    .Padding(0, 0, 50, 0)
-                                    [
-                                        SNew(SBorder)
-                                            .BorderImage(FCoreStyle::Get().GetBrush("Border"))
-                                            .BorderBackgroundColor(FLinearColor::White)
-                                            .Padding(FMargin(5.0f))
-                                            [
-                                                SNew(SHorizontalBox)
-
-                                                    + SHorizontalBox::Slot()
-                                                    .AutoWidth()
-                                                    [
-                                                        SNew(STextBlock)
-                                                            .Text(LOCTEXT("RapidKeyLabel", "Rapid Key: "))
-                                                    ]
-
-                                                    + SHorizontalBox::Slot()
-                                                    .AutoWidth()
-                                                    [
-                                                        SNew(SBox)
-                                                            .WidthOverride(350)
-                                                            [
-                                                                SAssignNew(KeyField, SEditableText)
-                                                                    .HintText(LOCTEXT("KeyHint", "                              Please enter your rapid key"))
-                                                                    .IsPassword(true)
-                                                                    .OnTextCommitted(this, &SLoginScreen::OnTextCommittedInKeyField)
-                                                            ]
-                                                    ]
-                                            ]
-                                    ]
+                                SNew(STextBlock)
+                                .Text(LOCTEXT("RapidKeyLabel", "Rapid Key: "))
                             ]
-                    ]
 
-                    + SOverlay::Slot()
-                    .VAlign(VAlign_Center)
-                    .HAlign(HAlign_Center)
-                    .Padding(0, 60, 0, 0)
-                    [
-                        SNew(SBox)
+                            + SHorizontalBox::Slot()
+                            .AutoWidth()
                             [
-                                SNew(SButton)
-                                    .ContentPadding(FMargin(10))
-                                    .Text(LOCTEXT("LoginButton", "Login"))
-                                    .OnClicked(this, &SLoginScreen::LoginButtonClicked)
+                                SNew(SBox)
+                                .WidthOverride(350)
+                                [
+                                    SAssignNew(KeyField, SEditableText)
+                                    .HintText(LOCTEXT("KeyHint", "                              Please enter your rapid key"))
+                                    .IsPassword(true)
+                                    .OnTextCommitted(this, &SLoginScreen::OnTextCommittedInKeyField)
+                                ]
                             ]
+                        ]
                     ]
-            ];
+                ]
+            ]
+
+            + SScrollBox::Slot()
+            .VAlign(VAlign_Center)
+            .HAlign(HAlign_Center)
+            .Padding(0, 60, 0, 0)
+            [
+                SNew(SBox)
+                [
+                    SNew(SButton)
+                    .ContentPadding(FMargin(10))
+                    .Text(LOCTEXT("LoginButton", "Login"))
+                    .OnClicked(this, &SLoginScreen::LoginButtonClicked)
+                ]
+            ]
+        ];
     }
 }
 

@@ -57,7 +57,7 @@ private:
 	void OnLogout();
 	void OnCreationScreenEnabled();
 	void OnQueueScreenEnabled();
-	void OnWindowClosed();
+	void OnMainWindowClosed(const TSharedRef<SWindow>& ClosedWindow);
 
 private:
 	// Application
@@ -77,5 +77,4 @@ private:
 	// Editor Notifications
 	EditorNotificationHelper NotificationHelper;
 
-	
 };

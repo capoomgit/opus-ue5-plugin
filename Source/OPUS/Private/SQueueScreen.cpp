@@ -8,6 +8,7 @@
 #include "Serialization/JsonReader.h" 
 #include "Serialization/JsonSerializer.h" 
 #include "URLHelper.h"
+#include "Widgets/Layout/SScrollBox.h"
 
 #define LOCTEXT_NAMESPACE "FOPUSModule"
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -19,9 +20,9 @@ void SQueueScreen::Construct(const FArguments& InArgs)
 
 	ChildSlot
 	[
-        SNew(SOverlay)
+        SNew(SScrollBox)
 
-            + SOverlay::Slot()
+            + SScrollBox::Slot()
             .VAlign(VAlign_Top)
             .HAlign(HAlign_Left)
             .Padding(22, 0, 0, 0)
@@ -31,7 +32,7 @@ void SQueueScreen::Construct(const FArguments& InArgs)
                     .OnClicked(this, &SQueueScreen::ReturnButtonClicked)
             ]
 
-            + SOverlay::Slot()
+            + SScrollBox::Slot()
             .VAlign(VAlign_Top)
             .HAlign(HAlign_Right)
             .Padding(0, 0 , 22, 0)
@@ -47,7 +48,7 @@ void SQueueScreen::Construct(const FArguments& InArgs)
                     ]
             ]
 
-            + SOverlay::Slot()
+            + SScrollBox::Slot()
             .VAlign(VAlign_Center)
             .HAlign(HAlign_Center)
             .Padding(0, 10, 0, 0)
@@ -57,13 +58,13 @@ void SQueueScreen::Construct(const FArguments& InArgs)
                     .BorderBackgroundColor(FLinearColor::Gray)
                     .Padding(FMargin(2))
                     [
-                        SNew(SVerticalBox)
+                        SNew(SScrollBox)
 
-                            + SVerticalBox::Slot()
+                            + SScrollBox::Slot()
                             [
                                 SNew(SBox)
                                     .WidthOverride(550)
-                                    .HeightOverride(600)
+                                    .HeightOverride(500)
                                     [
                                         SAssignNew(QueueListView, SListView<TSharedPtr<FQueueRow>>)
                                             .ItemHeight(24)

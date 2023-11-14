@@ -35,7 +35,6 @@ void FOPUSModule::StartupModule()
 		FCanExecuteAction());
 
 	UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FOPUSModule::RegisterMenus));
-
 }
 
 void FOPUSModule::ShutdownModule()
@@ -127,12 +126,15 @@ void FOPUSModule::RegisterQueueScreen()
 // Create plugin window to populate
 void FOPUSModule::CreateWindow()
 {
+
 	SAssignNew(MainWindow, SWindow)
 		.Title(LOCTEXT("WindowTitle", "OPUS API"))
-		.ClientSize(FVector2D(600, 600))
+		.ClientSize(FVector2D(650, 600))
 		.IsInitiallyMaximized(false);
 
+		
 	FSlateApplication::Get().AddWindow(MainWindow.ToSharedRef());
+	
 }
 
 void FOPUSModule::ShowScreen(OPUSScreenState screen)
