@@ -367,7 +367,7 @@ void SCreationScreen::SetUpFileTypeComboBox()
 {
     AvailableFileTypes.Empty();
     AvailableFileTypes.Add(MakeShareable(new FString("fbx")));
-    AvailableFileTypes.Add(MakeShareable(new FString("gltf")));
+    //AvailableFileTypes.Add(MakeShareable(new FString("gltf")));
     //AvailableFileTypes.Add(MakeShareable(new FString("usd")));
     CurrentFileType = AvailableFileTypes[0];
 }

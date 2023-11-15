@@ -9,6 +9,9 @@
 #include "Serialization/JsonSerializer.h" 
 #include "URLHelper.h"
 #include "Widgets/Layout/SScrollBox.h"
+#include "Factories/FbxFactory.h"
+#include "AssetRegistryModule.h"
+#include "PackageTools.h"
 
 #define LOCTEXT_NAMESPACE "FOPUSModule"
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -20,32 +23,30 @@ void SQueueScreen::Construct(const FArguments& InArgs)
 
 	ChildSlot
 	[
-        SNew(SScrollBox)
+        SNew(SScrollBox)          
 
             + SScrollBox::Slot()
             .VAlign(VAlign_Top)
             .HAlign(HAlign_Left)
-            .Padding(22, 0, 0, 0)
+            .Padding(47, 10, 0, 0)
             [
+
                 SNew(SButton)
-                    .Text(FText::FromString(TEXT("←")))
-                    .OnClicked(this, &SQueueScreen::ReturnButtonClicked)
+                .Text(FText::FromString(TEXT("←")))
+                .OnClicked(this, &SQueueScreen::ReturnButtonClicked)
+
             ]
 
             + SScrollBox::Slot()
             .VAlign(VAlign_Top)
             .HAlign(HAlign_Right)
-            .Padding(0, 0 , 22, 0)
+            .Padding(0, -22, 47, 0)
             [
-                SNew(SHorizontalBox) // Add a new SHorizontalBox here
 
-                    + SHorizontalBox::Slot()
-                    .AutoWidth()
-                    [
-                        SNew(SButton)
-                            .Text(FText::FromString(TEXT("🗑️ Empty List"))) // Replace this with your desired text
-                            .OnClicked(this, &SQueueScreen::EmptyQButtonClicked) // Add your EmptyListButtonClicked function
-                    ]
+                SNew(SButton)
+                .Text(FText::FromString(TEXT("Empty List 🗑️ "))) // Replace this with your desired text
+                .OnClicked(this, &SQueueScreen::EmptyQButtonClicked) // Add your EmptyListButtonClicked function
+
             ]
 
             + SScrollBox::Slot()
@@ -250,20 +251,20 @@ TSharedRef<ITableRow> SQueueScreen::OnGenerateRowForList(TSharedPtr<FQueueRow> I
                     SNew(SButton)
                         .Text(FText::FromString(TEXT("+")))
                         .OnClicked_Lambda([this, CurrentIndex]() {
-                        if (QueueData[CurrentIndex]->Status == TEXT("COMPLETED")) {
-                            DownloadAndUnzipMethod(QueueData[CurrentIndex]->DownloadLink, QueueData[CurrentIndex]->DateTime, QueueData[CurrentIndex]->Job);
-                            NotificationHelper.ShowNotificationSuccess(LOCTEXT("Success", "The addition of the component is in progress. This might take some time varying the size of the job."));
-                        }
-                        else if (QueueData[CurrentIndex]->Status == TEXT("IN_PROGRESS")) {
-                            NotificationHelper.ShowNotificationPending(LOCTEXT("Pending", "Job is not ready yet. Please wait..."));
-                        }
-                        else if (QueueData[CurrentIndex]->Status == TEXT("FAILED")) {
-                            NotificationHelper.ShowNotificationFail(LOCTEXT("ErrorOccured", "Job failed. Please try again later or check logs for more information"));
-                        }
-                        else if (QueueData[CurrentIndex]->Status == TEXT("SUSPENDED")) {
-                            NotificationHelper.ShowNotificationFail(LOCTEXT("OpusError", "Due to some reasons the job is suspended from the OPUS. Please try again later or check logs for more information"));
-                        }
-                        return FReply::Handled();
+                                if (QueueData[CurrentIndex]->Status == TEXT("COMPLETED")) {
+                                    DownloadAndUnzipMethod(QueueData[CurrentIndex]->DownloadLink, QueueData[CurrentIndex]->DateTime, QueueData[CurrentIndex]->Job);
+                                    NotificationHelper.ShowNotificationSuccess(LOCTEXT("Success", "The addition of the component is in progress. This might take some time varying the size of the job."));
+                                }
+                                else if (QueueData[CurrentIndex]->Status == TEXT("IN_PROGRESS")) {
+                                    NotificationHelper.ShowNotificationPending(LOCTEXT("Pending", "Job is not ready yet. Please wait..."));
+                                }
+                                else if (QueueData[CurrentIndex]->Status == TEXT("FAILED")) {
+                                    NotificationHelper.ShowNotificationFail(LOCTEXT("ErrorOccured", "Job failed. Please try again later or check logs for more information"));
+                                }
+                                else if (QueueData[CurrentIndex]->Status == TEXT("SUSPENDED")) {
+                                    NotificationHelper.ShowNotificationFail(LOCTEXT("OpusError", "Due to some reasons the job is suspended from the OPUS. Please try again later or check logs for more information"));
+                                }
+                                return FReply::Handled();
                             })
                 ]
 
@@ -379,6 +380,8 @@ void SQueueScreen::DownloadAndUnzipMethod(const FString& URL, const FString& Dat
                         // Copy the unzipped files to the OPUS sub-directory
                         FPlatformFileManager::Get().GetPlatformFile().CopyDirectoryTree(*DestinationSubFolder, *UnzipDirectory, true);
 
+                        ImportFBX(DestinationSubFolder);
+
                         UE_LOG(LogTemp, Warning, TEXT("Files copied to the Content/OPUS/%s directory"), *SubFolderName);
                     }
                     else
@@ -416,6 +419,81 @@ bool SQueueScreen::ExtractWith7Zip(const FString& ZipFile, const FString& Destin
         return true;
     }
     return false;
+}
+
+void SQueueScreen::ImportFBX(const FString& ContentDirectoryPath)
+{
+    TArray<FString> FbxFilesInDirectory;
+    FbxFilesInDirectory.Empty();
+    IFileManager::Get().FindFilesRecursive(FbxFilesInDirectory, *ContentDirectoryPath, TEXT("*.fbx"), true, false, false);
+
+    if (FbxFilesInDirectory.Num() > 0)
+    {
+        UObject* ImportedObject = nullptr;
+        UPackage* ModelPackage = nullptr;
+        FString LogMessage;
+        FString FbxFilePath = FbxFilesInDirectory[0];
+
+        // Clean path
+        FbxFilePath = FbxFilePath.Replace(TEXT("\""), TEXT("/"));
+
+        UE_LOG(LogTemp, Warning, TEXT("Importing from fbx file: %s"), *FbxFilePath);
+        // Create Fbx factory and asset registry
+        FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+        UFbxFactory* FbxFactory = NewObject<UFbxFactory>();
+        FbxFactory->AddToRoot();
+        FbxFactory->EnableShowOption();
+
+        // Create strings for model package
+        FString FbxFileName = FPaths::GetBaseFilename(FbxFilePath);
+        FString ModelPackageName = FbxFilePath;
+        FString GamePackageName = "/Game";
+        ModelPackageName.Split(TEXT("Content"), nullptr, &ModelPackageName);
+        ModelPackageName = GamePackageName.Append(ModelPackageName);
+        ModelPackageName = PackageTools::SanitizePackageName(ModelPackageName);
+
+        // Load if package exists
+        if (FPackageName::DoesPackageExist(ModelPackageName))
+        {
+            ModelPackage = LoadPackage(nullptr, *ModelPackageName, LOAD_None);
+            if (ModelPackage)
+            {
+                ModelPackage->FullyLoad();
+            }
+
+            LogMessage = ModelPackageName + FString(" already exists!");
+            UE_LOG(LogTemp, Warning, TEXT("%s"), *LogMessage);
+        }
+        else
+        {
+            // Create packeage if doesnt exist
+            ModelPackage = CreatePackage(*ModelPackageName);
+            ModelPackage->FullyLoad();
+        }
+
+        // Import settings
+        bool bImportCancelled = false;
+        ImportedObject = FbxFactory->ImportObject(UStaticMesh::StaticClass(),
+            ModelPackage, FName(*FbxFileName),
+            EObjectFlags::RF_Standalone | EObjectFlags::RF_Public,
+            FbxFilePath,
+            nullptr,
+            bImportCancelled);
+
+        if (bImportCancelled)
+        {
+            if (ModelPackage)
+            {
+                // @todo clean up created package
+                // ModelPackage->ConditionalBeginDestroy();
+            }
+        }
+
+        // @todo save package
+        FbxFactory->RemoveFromRoot();
+        FbxFactory->ConditionalBeginDestroy();
+        FbxFactory = nullptr;
+    }
 }
 
 // --------------------------------
@@ -624,7 +702,7 @@ void SQueueScreen::SetUpFileTypes()
 {
     AvailableFileTypes.Empty();
     AvailableFileTypes.Add(MakeShareable(new FString("fbx")));
-    AvailableFileTypes.Add(MakeShareable(new FString("gltf")));
+    //AvailableFileTypes.Add(MakeShareable(new FString("gltf")));
     //AvailableFileTypes.Add(MakeShareable(new FString("usd")));
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION

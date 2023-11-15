@@ -27,7 +27,7 @@ void SLoginScreen::Construct(const FArguments& InArgs)
             + SScrollBox::Slot()
             .VAlign(VAlign_Center)
             .HAlign(HAlign_Center)
-            .Padding(0, -150, 0, 0)  // Move the image up
+            .Padding(0, 80, 30, 0)
             [
                 SNew(SImage)
                     .Image(FOPUSStyle::Get().GetBrush("OPUS.APILogo"))
@@ -36,6 +36,7 @@ void SLoginScreen::Construct(const FArguments& InArgs)
             + SScrollBox::Slot()
             .VAlign(VAlign_Center)
             .HAlign(HAlign_Center)
+            .Padding(0, 80, 0, 0)
             [
                 SNew(STextBlock)
                     .Text(LOCTEXT("Logging in", "Logging in from previous API key"))
@@ -52,7 +53,7 @@ void SLoginScreen::Construct(const FArguments& InArgs)
             + SScrollBox::Slot()
             .VAlign(VAlign_Top)
             .HAlign(HAlign_Center)
-            .Padding(0, 60, 0, 0)  // Move the image up
+            .Padding(0, 80, 0, 0)  // Move the image up
             [
                 SNew(SImage)
                 .Image(FOPUSStyle::Get().GetBrush("OPUS.APILogo"))
@@ -61,6 +62,7 @@ void SLoginScreen::Construct(const FArguments& InArgs)
             + SScrollBox::Slot()
             .VAlign(VAlign_Center)
             .HAlign(HAlign_Center)
+            .Padding(0, 60, 0, 0)
             [
                 SNew(SVerticalBox)
 

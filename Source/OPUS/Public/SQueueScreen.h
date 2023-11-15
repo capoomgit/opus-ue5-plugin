@@ -62,6 +62,7 @@ private:
 	// Download and unzip methods
 	bool ExtractWith7Zip(const FString& ZipFile, const FString& DestinationDirectory);
 	void DownloadAndUnzipMethod(const FString& URL, const FString& DateTime, const FString& JobName);
+	void ImportFBX(const FString& DirectoryPath);
 
 	// Helper methods
 	void SetUpFileTypes();
