@@ -40,10 +40,9 @@ private:
 		FString type;
 		FString attribute;
 	};
-	struct FAssetTag
+	struct FPair
 	{
 		FString SubCategory;
-		FString AssetName;
 		FString Tag;
 	};
 	
@@ -107,7 +106,6 @@ private:
 	FText GetCurrentModel() const;
 	FText GetCurrentFileType() const;
 	FText GetCurrentTextureSize() const;
-	bool TagExistsInFilteredList(TSharedPtr<FString> TagString);
 
 private:
 	FString APIKey;
@@ -153,7 +151,7 @@ private:
 	// Tag searchbox members
 	TArray<TSharedPtr<FString>> TagFilteredSuggestions;
 	TSharedPtr<FString> SelectedTagSuggestion;
-	TArray<TSharedPtr<FAssetTag>> TagsList;											// Source of possible tags
+	TArray<TSharedPtr<FPair>> TagsList;											// Source of possible tags
 	TArray<TSharedPtr<FString>> MainCategoryKeysList;
 	TArray<TSharedPtr<FString>> ParameterSuggestions;
 
