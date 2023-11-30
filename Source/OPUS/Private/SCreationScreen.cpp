@@ -391,16 +391,16 @@ void SCreationScreen::OnTagsSearchTextChanged(const FText& NewText)
     FString CurrentInput = NewText.ToString();
     
     // loop through tags list
-    for (const TSharedPtr<FPair>& CurrentPair : TagsList)
+    for (const TSharedPtr<FAssetTag>& CurrentAssetTag : TagsList)
     {
         bool TagCategoryAlreadyAdded = false;
-        if (CurrentPair->Tag.Contains(CurrentInput))
+        if (CurrentAssetTag->Tag.Contains(CurrentInput))
         {
             // Loop through rows in the customizations table
             for (const TSharedPtr<FKeywordTableRow> Row : CustomizationTable->TableRows)
             {
                 // Check if subcategory tag already assigned
-                if (Row->Customization->Equals(CurrentPair->SubCategory))
+                if (Row->Customization->Equals(CurrentAssetTag->SubCategory))
                 {
                     TagCategoryAlreadyAdded = true;
                     break;
@@ -409,7 +409,11 @@ void SCreationScreen::OnTagsSearchTextChanged(const FText& NewText)
 
             if (!TagCategoryAlreadyAdded)
             {
-                TagFilteredSuggestions.Add(MakeShared<FString>(CurrentPair->SubCategory + " - " + CurrentPair->Tag));
+                TSharedPtr<FString> TagDisplayString = MakeShared<FString>(CurrentAssetTag->SubCategory + " - " + CurrentAssetTag->Tag);
+                if (!TagExistsInFilteredList(TagDisplayString))
+                {
+                    TagFilteredSuggestions.Add(TagDisplayString);
+                }
             }
         }
     }
@@ -680,6 +684,20 @@ bool SCreationScreen::IsCustomization(const FString& Keyword)
     return Keyword.Contains("/");  // Adjust this if the criteria change
 }
 
+bool SCreationScreen::TagExistsInFilteredList(TSharedPtr<FString> TagString)
+{
+    for (const TSharedPtr<FString> CurrentTag : TagFilteredSuggestions)
+    {
+        FString TagInList = *CurrentTag;
+        FString TagToSearch = *TagString;
+        if (TagInList.Equals(TagToSearch)) 
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 // ------------------------------
 // --- API REQUEST METHODS
 // ------------------------------
@@ -871,13 +889,18 @@ void SCreationScreen::OnThirdAPIRequestAttributeNameCompleted(FHttpRequestPtr Re
                                 {
                                     FString TagString = TagValue->AsString();
 
-                                    FPair NewPair;
-                                    NewPair.SubCategory = SubCategoryKey;
-                                    NewPair.Tag = TagString;
+                                    FAssetTag NewAssetTag;
+                                    NewAssetTag.SubCategory = SubCategoryKey;
+                                    NewAssetTag.AssetName = AssetName;
+                                    NewAssetTag.Tag = TagString;
 
-                                    TagsList.Add(MakeShared<FPair>(NewPair));
+                                    TagsList.Add(MakeShared<FAssetTag>(NewAssetTag));
 
-                                    TagFilteredSuggestions.Add(MakeShared<FString>(NewPair.SubCategory + " - " + NewPair.Tag));
+                                    TSharedPtr<FString> TagDisplayString = MakeShared<FString>(NewAssetTag.SubCategory + " - " + NewAssetTag.Tag);
+                                    if (!TagExistsInFilteredList(TagDisplayString))
+                                    {
+                                        TagFilteredSuggestions.Add(TagDisplayString);
+                                    }
                                 }
                             }
 
@@ -890,12 +913,18 @@ void SCreationScreen::OnThirdAPIRequestAttributeNameCompleted(FHttpRequestPtr Re
                                     FString TemplateString = TemplateValue->AsString();
 
                                     // Adding templates to the TagsList similar to how tags were added
-                                    FPair NewPair;
-                                    NewPair.SubCategory = SubCategoryKey;
-                                    NewPair.Tag = TemplateString;  // Using Tag member variable to store the template
+                                    FAssetTag NewAssetTag;
+                                    NewAssetTag.SubCategory = SubCategoryKey;
+                                    NewAssetTag.AssetName = AssetName;
+                                    NewAssetTag.Tag = TemplateString;  // Using Tag member variable to store the template
 
-                                    TagsList.Add(MakeShared<FPair>(NewPair));
-                                    TagFilteredSuggestions.Add(MakeShared<FString>(NewPair.SubCategory + " - " + NewPair.Tag));
+                                    TagsList.Add(MakeShared<FAssetTag>(NewAssetTag));
+
+                                    TSharedPtr<FString> TagDisplayString = MakeShared<FString>(NewAssetTag.SubCategory + " - " + NewAssetTag.Tag);
+                                    if (!TagExistsInFilteredList(TagDisplayString))
+                                    {
+                                        TagFilteredSuggestions.Add(TagDisplayString);
+                                    }
                                 }
                             }
 

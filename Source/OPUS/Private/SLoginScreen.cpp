@@ -166,7 +166,7 @@ void SLoginScreen::LogIn(FString key)
                             {
                                 SaveKeyToFile(key);
                                 NotificationHelper.ShowNotificationSuccess(LOCTEXT("ValidKeyNotification", "Logged in successfully!"));
-                                OnLoginSuccessfulDelegate.Broadcast(StoredAPIKey);
+                                OnLoginSuccessfulDelegate.Broadcast(key);
                                 
                             });
                     });

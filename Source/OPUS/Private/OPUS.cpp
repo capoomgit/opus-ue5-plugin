@@ -110,6 +110,10 @@ void FOPUSModule::RegisterCreationScreen()
 		CreationScreen->OnLogoutDelegate.AddRaw(this, &FOPUSModule::OnLogout);
 		CreationScreen->OnQueueScreenEnabledDelegate.AddRaw(this, &FOPUSModule::OnQueueScreenEnabled);
 	}
+	else
+	{
+		CreationScreen->SetAPIKey(CurrentAPIKey);
+	}
 }
 
 void FOPUSModule::RegisterQueueScreen()
@@ -120,6 +124,10 @@ void FOPUSModule::RegisterQueueScreen()
 			.APIKey(CurrentAPIKey);
 
 		QueueScreen->OnCreationScreenEnabledDelegate.AddRaw(this, &FOPUSModule::OnCreationScreenEnabled);
+	}
+	else
+	{
+		QueueScreen->SetAPIKey(CurrentAPIKey);
 	}
 }
 

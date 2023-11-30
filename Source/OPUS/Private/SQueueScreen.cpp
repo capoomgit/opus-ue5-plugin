@@ -408,6 +408,10 @@ bool SQueueScreen::ExtractWith7Zip(const FString& ZipFile, const FString& Destin
 {
     // Get the path to 7za.exe within the plugin's Binaries directory.
     FString PluginDir = FPaths::Combine(FPaths::ProjectPluginsDir(), TEXT("OPUS"));
+    if (!FPaths::DirectoryExists(PluginDir)) 
+    {
+        PluginDir = FPaths::Combine(FPaths::EnginePluginsDir(), TEXT("OPUS"));
+    }
     FString SevenZipExecutable = FPaths::Combine(PluginDir, TEXT("Binaries"), TEXT("7za.exe"));
 
     FString CommandArgs = FString::Printf(TEXT("e \"%s\" -o\"%s\" -y"), *ZipFile, *DestinationDirectory);
