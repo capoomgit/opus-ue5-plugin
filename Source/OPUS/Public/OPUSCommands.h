@@ -4,14 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "Framework/Commands/Commands.h"
-#include "GUIStyle.h"
+#include "OPUSStyle.h"
 
-class FGUICommands : public TCommands<FGUICommands>
+class FOPUSCommands : public TCommands<FOPUSCommands>
 {
 public:
 
-	FGUICommands()
-		: TCommands<FGUICommands>(TEXT("GUI"), NSLOCTEXT("Contexts", "GUI", "GUI Plugin"), NAME_None, FGUIStyle::GetStyleSetName())
+	FOPUSCommands()
+		: TCommands<FOPUSCommands>(TEXT("OPUS"), NSLOCTEXT("Contexts", "OPUS", "OPUS Plugin"), NAME_None, FOPUSStyle::GetStyleSetName())
 	{
 	}
 
