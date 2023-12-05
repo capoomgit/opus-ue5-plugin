@@ -25,9 +25,12 @@ void SCreationScreen::Construct(const FArguments& InArgs)
 {
     APIKey = InArgs._APIKey;
     CurrentModel = MakeShared<FString>(TEXT("Loading..."));
-    ParameterFilteredSuggestions.Empty();
-    ParameterSuggestions.Empty();
     TagFilteredSuggestions.Empty();
+    TemplateFilteredSuggestions.Empty();
+    ParameterFilteredSuggestions.Empty();
+    TagList.Empty();
+    ParameterList.Empty();
+    TemplateList.Empty();
     SetUpFileTypeComboBox();
     SetUpTextureSizeComboBox();
 
@@ -176,7 +179,7 @@ void SCreationScreen::Construct(const FArguments& InArgs)
                 .Padding(30, 20, 0, 0)
                 [
                     SNew(STextBlock)
-                    .Text(LOCTEXT("Select preset", "Select a model preset"))
+                    .Text(LOCTEXT("Select tags", "Select a model tag"))
                 ]
 
                 // Tag Search Box
@@ -194,7 +197,25 @@ void SCreationScreen::Construct(const FArguments& InArgs)
                 .Padding(30, 20, 0, 0)
                 [
                     SNew(STextBlock)
-                    .Text(LOCTEXT("Parameter Customization", "Parameter customizaztion"))
+                        .Text(LOCTEXT("Select templates", "Select a template"))
+                ]
+
+                // Tag Search Box
+                + SVerticalBox::Slot()
+                .AutoHeight()
+                .Padding(30, 10, 30, 0)
+                [
+                    SAssignNew(TemplateSearchBox, SFilteredSelectionTextBox)
+                        .ListItemsSource(&TemplateFilteredSuggestions)
+                        .OnTextChanged(this, &SCreationScreen::OnTemplateSearchTextChanged)
+                ]
+
+                + SVerticalBox::Slot()
+                .AutoHeight()
+                .Padding(30, 20, 0, 0)
+                [
+                    SNew(STextBlock)
+                    .Text(LOCTEXT("Parameter Customization", "Select a parameter to edit"))
                 ]
 
                 // Parameter Search Box
@@ -228,13 +249,13 @@ void SCreationScreen::Construct(const FArguments& InArgs)
                     .Padding(30, 0, 0, 0)
                     [
                         SNew(SBox)
-                        .WidthOverride(115)  // Adjusted button width
+                        .WidthOverride(155)  // Adjusted button width
                         .HeightOverride(50)  // Adjusted button height
                         [
                             SNew(SButton)
                             .VAlign(VAlign_Center)
                             .HAlign(HAlign_Center)
-                            .Text(LOCTEXT("ResetFeaturesButton", "Reset All"))
+                            .Text(LOCTEXT("ResetFeaturesButton", "Reset Customization"))
                             .OnClicked(this, &SCreationScreen::ResetFeaturesButtonClicked)
                             .ButtonColorAndOpacity(FLinearColor(1, 0.3, 0.3, 1))
 
@@ -284,6 +305,7 @@ void SCreationScreen::Construct(const FArguments& InArgs)
         });
 	
     TagSearchBox->OnSuggestionSelected.AddRaw(this, &SCreationScreen::OnTagSelected);
+    TemplateSearchBox->OnSuggestionSelected.AddRaw(this, &SCreationScreen::OnTemplateSelected);
     ParameterSearchBox->OnSuggestionSelected.AddRaw(this, &SCreationScreen::OnParameterSelected);
 }
 
@@ -345,11 +367,16 @@ void SCreationScreen::ModelComboBoxSelectionChanged(TSharedPtr<FString> NewItem,
         SendThirdAPIRequest_AttributeName();
 
         // Refresh the list view
+        TagSearchBox->RequestListRefresh();
+        TagSearchBox->Invalidate(EInvalidateWidget::Layout);
+
+        TemplateSearchBox->RequestListRefresh();
+        TemplateSearchBox->Invalidate(EInvalidateWidget::Layout);
+
         ParameterSearchBox->RequestListRefresh();
         ParameterSearchBox->Invalidate(EInvalidateWidget::Layout);
 
-        TagSearchBox->RequestListRefresh();
-        TagSearchBox->Invalidate(EInvalidateWidget::Layout);
+        
     }
 }
 
@@ -391,16 +418,16 @@ void SCreationScreen::OnTagsSearchTextChanged(const FText& NewText)
     FString CurrentInput = NewText.ToString();
     
     // loop through tags list
-    for (const TSharedPtr<FPair>& CurrentPair : TagsList)
+    for (const TSharedPtr<FAssetTag>& CurrentTag : TagList)
     {
         bool TagCategoryAlreadyAdded = false;
-        if (CurrentPair->Tag.Contains(CurrentInput))
+        if (CurrentTag->Tag.Contains(CurrentInput) || CurrentTag->ComponentName.Contains(CurrentInput))
         {
             // Loop through rows in the customizations table
             for (const TSharedPtr<FKeywordTableRow> Row : CustomizationTable->TableRows)
             {
                 // Check if subcategory tag already assigned
-                if (Row->Customization->Equals(CurrentPair->SubCategory))
+                if (Row->Customization->Equals(CurrentTag->ComponentName))
                 {
                     TagCategoryAlreadyAdded = true;
                     break;
@@ -409,28 +436,87 @@ void SCreationScreen::OnTagsSearchTextChanged(const FText& NewText)
 
             if (!TagCategoryAlreadyAdded)
             {
-                TagFilteredSuggestions.Add(MakeShared<FString>(CurrentPair->SubCategory + " - " + CurrentPair->Tag));
+                TSharedPtr<FString> TagDisplayString = MakeShared<FString>(CurrentTag->ComponentName + " - " + CurrentTag->Tag);
+                TagFilteredSuggestions.Add(TagDisplayString);
             }
         }
     }
+    // Sort array
+    TagFilteredSuggestions.Sort([](const TSharedPtr<FString>& A, const TSharedPtr<FString>& B) { return *A < *B; });
 
     // Refresh the tags suggestion list view
     TagSearchBox->RequestListRefresh();
 }
 
+void SCreationScreen::OnTemplateSearchTextChanged(const FText& NewText)
+{
+    // Clear previous suggestions
+    TemplateFilteredSuggestions.Empty();
+    FString CurrentInput = NewText.ToString();
+
+    // loop through tags list
+    for (const TSharedPtr<FAssetTemplate>& CurrentTemplate : TemplateList)
+    {
+        bool CategoryAlreadyAdded = false;
+        if (CurrentTemplate->TemplateName.Contains(CurrentInput) || CurrentTemplate->ComponentName.Contains(CurrentInput))
+        {
+            // Loop through rows in the customizations table
+            for (const TSharedPtr<FKeywordTableRow> Row : CustomizationTable->TableRows)
+            {
+                // Check if subcategory tag already assigned
+                if (Row->Customization->Equals(CurrentTemplate->ComponentName))
+                {
+                    CategoryAlreadyAdded = true;
+                    break;
+                }
+            }
+
+            if (!CategoryAlreadyAdded)
+            {
+                TSharedPtr<FString> TemplateDisplayString = MakeShared<FString>(CurrentTemplate->ComponentName + " - " + CurrentTemplate->TemplateName);
+                TemplateFilteredSuggestions.Add(TemplateDisplayString);
+            }
+        }
+    }
+
+    // Sort array
+    TemplateFilteredSuggestions.Sort([](const TSharedPtr<FString>& A, const TSharedPtr<FString>& B) { return *A < *B; });
+
+    // Refresh the tags suggestion list view
+    TemplateSearchBox->RequestListRefresh();
+}
+
 void SCreationScreen::OnParamSearchTextChanged(const FText& NewText)
 {
     ParameterFilteredSuggestions.Empty();
-
+    bool TagCategoryAlreadyAdded = false;
     FString CurrentInput = NewText.ToString();
     
-    for (const TSharedPtr<FString>& Suggestion : ParameterSuggestions)
+    for (const TSharedPtr<FAssetParameter>& CurrentParameter : ParameterList)
     {
-        if (Suggestion->Contains(CurrentInput))
+        if (CurrentParameter->FullName.Contains(CurrentInput))
         {
-            ParameterFilteredSuggestions.Add(Suggestion);
+            // Loop through rows in the customizations table
+            for (const TSharedPtr<FKeywordTableRow> Row : CustomizationTable->TableRows)
+            {
+                // Check if subcategory tag already assigned
+                if (Row->Customization->Equals(CurrentParameter->FullName))
+                {
+                    TagCategoryAlreadyAdded = true;
+                    break;
+                }
+            }
+
+            if (!TagCategoryAlreadyAdded)
+            {
+                TSharedPtr<FString> ParameterFullName = MakeShared<FString>(CurrentParameter->FullName);
+                ParameterFilteredSuggestions.Add(ParameterFullName);
+            }
         }
     }
+
+    // Sort array
+    ParameterFilteredSuggestions.Sort([](const TSharedPtr<FString>& A, const TSharedPtr<FString>& B) { return *A < *B; });
 
     // Refresh the list view
     ParameterSearchBox->RequestListRefresh();
@@ -440,6 +526,12 @@ void SCreationScreen::OnTagSelected(TSharedPtr<FString> TagSelection)
 {
     SelectedTagSuggestion = TagSelection;
     CustomizationTable->AddCustomizationToTable(TagSelection, false);
+}
+
+void SCreationScreen::OnTemplateSelected(TSharedPtr<FString> TemplateSelection)
+{
+    SelectedTemplateSuggestion = TemplateSelection;
+    CustomizationTable->AddCustomizationToTable(TemplateSelection, false);
 }
 
 void SCreationScreen::OnParameterSelected(TSharedPtr<FString> ParameterSelection)
@@ -453,6 +545,20 @@ void SCreationScreen::OnParameterSelected(TSharedPtr<FString> ParameterSelection
 // ------------------------------
 
 void SCreationScreen::SetAPIKey(FString apiKey) { APIKey = apiKey; }
+
+int SCreationScreen::CompareStrings(FString Str1, FString Str2)
+{
+    int minSize = FMath::Min(Str1.Len(), Str2.Len());
+
+    for (int i = 0; i < minSize; i++)
+    {
+        if (StringMap[Str1[i]] == StringMap[Str2[i]])
+            continue;
+        return StringMap[Str1[i]] - StringMap[Str2[i]];
+    }
+
+    return Str1.Len() - Str2.Len();
+}
 
 FText SCreationScreen::GetCurrentModel() const
 {
@@ -587,6 +693,9 @@ FReply SCreationScreen::ShowResetCustomizationWarning()
                                 {
                                     WarningWindowPtr->RequestDestroyWindow();
                                     CustomizationTable->ResetTable();
+                                    TagSearchBox->SetText(FText::GetEmpty());
+                                    TemplateSearchBox->SetText(FText::GetEmpty());
+                                    ParameterSearchBox->SetText(FText::GetEmpty());
                                 }
                                 return FReply::Handled();
                             })
@@ -658,7 +767,8 @@ FString SCreationScreen::ConstructCreateRequestBody()
         }
         isFirstKey = false;
 
-        JsonData += "        \"" + pair.Key + "\": [";
+        FString CurrentKey = pair.Key == "All" ? "*" : pair.Key;
+        JsonData += "        \"" + CurrentKey + "\": [";
         for (int i = 0; i < pair.Value.Num(); ++i)
         {
             JsonData += "\"" + pair.Value[i] + "\"";
@@ -678,6 +788,20 @@ FString SCreationScreen::ConstructCreateRequestBody()
 bool SCreationScreen::IsCustomization(const FString& Keyword)
 {
     return Keyword.Contains("/");  // Adjust this if the criteria change
+}
+
+bool SCreationScreen::TagExistsInFilteredList(TSharedPtr<FString> TagString)
+{
+    for (const TSharedPtr<FString> CurrentTag : TagFilteredSuggestions)
+    {
+        FString TagInList = *CurrentTag;
+        FString TagToSearch = *TagString;
+        if (TagInList.Equals(TagToSearch)) 
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 // ------------------------------
@@ -815,6 +939,7 @@ void SCreationScreen::SendThirdAPIRequest_AttributeName()
 
     // Give feedback
     TagSearchBox->SelectionsLoadingStarted();
+    TemplateSearchBox->SelectionsLoadingStarted();
     ParameterSearchBox->SelectionsLoadingStarted();
 }
 
@@ -828,30 +953,31 @@ void SCreationScreen::OnThirdAPIRequestAttributeNameCompleted(FHttpRequestPtr Re
         TSharedPtr<FJsonObject> JsonObject;
         TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Response->GetContentAsString());
 
-        MainCategoryKeysList.Empty();
-        TagsList.Empty();
-        ParameterSuggestions.Empty();
+        ModelComponentKeysList.Empty();
+        TagList.Empty();
+        TemplateList.Empty();
+        ParameterList.Empty();
 
         if (FJsonSerializer::Deserialize(Reader, JsonObject) && JsonObject.IsValid())
         {
             UE_LOG(LogTemp, Warning, TEXT("JSON Deserialization successful."));
 
             // Loop over main categories like "Stair"
-            for (const auto& MainCategoryPair : JsonObject->Values)
+            for (const auto& Model : JsonObject->Values)
             {
-                TSharedPtr<FJsonObject> SubCategories = MainCategoryPair.Value->AsObject();
-                UE_LOG(LogTemp, Warning, TEXT("Main Category: %s"), *MainCategoryPair.Key);
+                TSharedPtr<FJsonObject> Components = Model.Value->AsObject();
+                UE_LOG(LogTemp, Warning, TEXT("Main Category: %s"), *Model.Key);
 
                 // Loop over sub-categories like "stair_upper"
-                for (const auto& SubCategoryPair : SubCategories->Values)
+                for (const auto& ModelComponent : Components->Values)
                 {
-                    FString SubCategoryKey = SubCategoryPair.Key;
-                    MainCategoryKeysList.Add(MakeShared<FString>(SubCategoryKey));
-                    UE_LOG(LogTemp, Warning, TEXT("SubCategoryKey: %s"), *SubCategoryKey);
+                    FString ModelComponentKey = ModelComponent.Key;
+                    ModelComponentKeysList.Add(MakeShared<FString>(ModelComponentKey));
+                    UE_LOG(LogTemp, Warning, TEXT("SubCategoryKey: %s"), *ModelComponentKey);
 
-                    TSharedPtr<FJsonObject> CategoryObj = SubCategoryPair.Value->AsObject();
+                    TSharedPtr<FJsonObject> ModelComponentObj = ModelComponent.Value->AsObject();
                     const TArray<TSharedPtr<FJsonValue>>* AssetsArray;
-                    if (CategoryObj->TryGetArrayField("assets", AssetsArray))
+                    if (ModelComponentObj->TryGetArrayField("assets", AssetsArray))
                     {
                         for (const auto& AssetValue : *AssetsArray)
                         {
@@ -869,15 +995,47 @@ void SCreationScreen::OnThirdAPIRequestAttributeNameCompleted(FHttpRequestPtr Re
                             {
                                 for (const auto& TagValue : *TagsArray)
                                 {
+                                    bool bSameTagExists = false;
+                                    bool bSameComponentTagExists = false;
+                                    bool bStarComponentForTagExists = false;
                                     FString TagString = TagValue->AsString();
 
-                                    FPair NewPair;
-                                    NewPair.SubCategory = SubCategoryKey;
-                                    NewPair.Tag = TagString;
+                                    FAssetTag NewAssetTag;
+                                    NewAssetTag.ComponentName = ModelComponentKey;
+                                    NewAssetTag.AssetName = AssetName;
+                                    NewAssetTag.Tag = TagString;
 
-                                    TagsList.Add(MakeShared<FPair>(NewPair));
+                                    // Search for existing tags to generate * option
+                                    for (TSharedPtr<FAssetTag> ExistingTag : TagList) 
+                                    {
+                                        if (ExistingTag->Tag == NewAssetTag.Tag)
+                                        {
+                                            bSameTagExists = true;
+                                            if (ExistingTag->ComponentName == NewAssetTag.ComponentName) bSameComponentTagExists = true;
+                                            if (ExistingTag->ComponentName == "All") bStarComponentForTagExists = true;
+                                        }
+                                    }
 
-                                    TagFilteredSuggestions.Add(MakeShared<FString>(NewPair.SubCategory + " - " + NewPair.Tag));
+                                    // Add new tag if it doesnt exist for current component
+                                    if (!bSameComponentTagExists)
+                                    {
+                                        TagList.Add(MakeShared<FAssetTag>(NewAssetTag));
+                                        TSharedPtr<FString> TagDisplayString = MakeShared<FString>(NewAssetTag.ComponentName + " - " + NewAssetTag.Tag);
+                                        TagFilteredSuggestions.Add(TagDisplayString);
+                                    }
+
+                                    // Add star component tag to pick this tag for every component
+                                    if (!bStarComponentForTagExists && bSameTagExists)
+                                    {
+                                        FAssetTag StarAssetTag;
+                                        StarAssetTag.ComponentName = "All";
+                                        StarAssetTag.AssetName = "All";
+                                        StarAssetTag.Tag = TagString;
+
+                                        TagList.Add(MakeShared<FAssetTag>(StarAssetTag));
+                                        TSharedPtr<FString> StarTagDisplayString = MakeShared<FString>(StarAssetTag.ComponentName + " - " + StarAssetTag.Tag);
+                                        TagFilteredSuggestions.Add(StarTagDisplayString);
+                                    }
                                 }
                             }
 
@@ -887,15 +1045,46 @@ void SCreationScreen::OnThirdAPIRequestAttributeNameCompleted(FHttpRequestPtr Re
                             {
                                 for (const auto& TemplateValue : *TemplatesArray)
                                 {
+                                    bool bSameTemplateExists = false;
+                                    bool bSameComponentTemplateExists = false;
+                                    bool bStarComponentForTemplateExists = false;
                                     FString TemplateString = TemplateValue->AsString();
 
-                                    // Adding templates to the TagsList similar to how tags were added
-                                    FPair NewPair;
-                                    NewPair.SubCategory = SubCategoryKey;
-                                    NewPair.Tag = TemplateString;  // Using Tag member variable to store the template
+                                    FAssetTemplate NewAssetTemplate;
+                                    NewAssetTemplate.ComponentName = ModelComponentKey;
+                                    NewAssetTemplate.AssetName = AssetName;
+                                    NewAssetTemplate.TemplateName = TemplateString;
 
-                                    TagsList.Add(MakeShared<FPair>(NewPair));
-                                    TagFilteredSuggestions.Add(MakeShared<FString>(NewPair.SubCategory + " - " + NewPair.Tag));
+                                    for (TSharedPtr<FAssetTemplate> ExistingTemplate : TemplateList)
+                                    {
+                                        if (ExistingTemplate->TemplateName == NewAssetTemplate.TemplateName)
+                                        {
+                                            bSameTemplateExists = true;
+                                            if (ExistingTemplate->ComponentName == NewAssetTemplate.ComponentName) bSameComponentTemplateExists = true;
+                                            if (ExistingTemplate->ComponentName == "All") bStarComponentForTemplateExists = true;
+                                        }
+                                    }
+
+                                    // Add new template if it doesnt exist for current component
+                                    if (!bSameComponentTemplateExists)
+                                    {
+                                        TemplateList.Add(MakeShared<FAssetTemplate>(NewAssetTemplate));
+                                        TSharedPtr<FString> TemplateDisplayString = MakeShared<FString>(NewAssetTemplate.ComponentName + " - " + NewAssetTemplate.TemplateName);
+                                        TemplateFilteredSuggestions.Add(TemplateDisplayString);
+                                    }
+
+                                    // Add star component template to pick this template for every component
+                                    if (!bStarComponentForTemplateExists && bSameTemplateExists) 
+                                    {
+                                        FAssetTemplate StarAssetTemplate;
+                                        StarAssetTemplate.ComponentName = "All";
+                                        StarAssetTemplate.AssetName = "All";
+                                        StarAssetTemplate.TemplateName = TemplateString;
+
+                                        TemplateList.Add(MakeShared<FAssetTemplate>(StarAssetTemplate));
+                                        TSharedPtr<FString> StarTemplateDisplayString = MakeShared<FString>(StarAssetTemplate.ComponentName + " - " + StarAssetTemplate.TemplateName);
+                                        TemplateFilteredSuggestions.Add(StarTemplateDisplayString);
+                                    }
                                 }
                             }
 
@@ -906,34 +1095,40 @@ void SCreationScreen::OnThirdAPIRequestAttributeNameCompleted(FHttpRequestPtr Re
                                 for (const auto& ParameterValue : *ParametersArray)
                                 {
                                     TSharedPtr<FJsonObject> ParameterObj = ParameterValue->AsObject();
-                                    if (ParameterObj->HasField("attribute"))
+
+                                    FAssetParameter NewParameter;
+                                    NewParameter.ComponentName = ModelComponentKey;
+                                    NewParameter.AssetName = AssetName;
+                                    NewParameter.Name = ParameterObj->GetStringField("name");
+
+                                    // not needed for now
+                                    //NewParameter.Attribute = ParameterObj->GetStringField("attribute");
+                                    NewParameter.FullName = NewParameter.AssetName + "/" + NewParameter.Name;;
+
+                                    ParameterList.Add(MakeShared<FAssetParameter>(NewParameter));
+                                    ParameterFilteredSuggestions.Add(MakeShared<FString>(NewParameter.FullName));
+
+                                    // Extract the range of the parameters if available
+                                    if (ParameterObj->HasField("range"))
                                     {
-                                        FString ParameterName = ParameterObj->GetStringField("name");
-                                        FString AssetParameterCombination = FString::Printf(TEXT("%s/%s"), *AssetName, *ParameterName);
-                                        ParameterSuggestions.Add(MakeShared<FString>(AssetParameterCombination));
-                                        ParameterFilteredSuggestions.Add(MakeShared<FString>(AssetParameterCombination));
-
-                                        // Extract the range of the parameters if available
-                                        if (ParameterObj->HasField("range"))
+                                        const TArray<TSharedPtr<FJsonValue>>* RangeArray;
+                                        if (ParameterObj->TryGetArrayField("range", RangeArray))
                                         {
-                                            const TArray<TSharedPtr<FJsonValue>>* RangeArray;
-                                            if (ParameterObj->TryGetArrayField("range", RangeArray))
+                                            // Extract the first two range values
+                                            float MinValue = (*RangeArray)[0]->AsNumber();
+                                            float MaxValue = (*RangeArray)[1]->AsNumber();
+
+                                            // Store this in the map
+                                            CustomizationTable->ParameterRanges.Add(NewParameter.FullName, FVector2D(MinValue, MaxValue));
+
+                                            for (const auto& RangeValue : *RangeArray)
                                             {
-                                                // Extract the first two range values
-                                                float MinValue = (*RangeArray)[0]->AsNumber();
-                                                float MaxValue = (*RangeArray)[1]->AsNumber();
-
-                                                // Store this in the map
-                                                CustomizationTable->ParameterRanges.Add(AssetParameterCombination, FVector2D(MinValue, MaxValue));
-
-                                                for (const auto& RangeValue : *RangeArray)
-                                                {
-                                                    double Value = RangeValue->AsNumber();
-                                                    UE_LOG(LogTemp, Warning, TEXT("Range Value: %f"), Value);
-                                                }
+                                                double Value = RangeValue->AsNumber();
+                                                UE_LOG(LogTemp, Warning, TEXT("Range Value: %f"), Value);
                                             }
                                         }
                                     }
+                                    
                                 }
                             }
                         }
@@ -945,6 +1140,7 @@ void SCreationScreen::OnThirdAPIRequestAttributeNameCompleted(FHttpRequestPtr Re
 
     // Give feedback
     TagSearchBox->SelectionsLoadingComplete();
+    TemplateSearchBox->SelectionsLoadingComplete();
     ParameterSearchBox->SelectionsLoadingComplete();
 }
 

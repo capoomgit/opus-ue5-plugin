@@ -134,15 +134,26 @@ void FOPUSModule::RegisterQueueScreen()
 // Create plugin window to populate
 void FOPUSModule::CreateWindow()
 {
+	if (!MainWindow.IsValid())
+	{
+		SAssignNew(MainWindow, SWindow)
+			.Title(LOCTEXT("WindowTitle", "OPUS API"))
+			.ClientSize(FVector2D(650, 700))
+			.IsInitiallyMaximized(false);
 
-	SAssignNew(MainWindow, SWindow)
-		.Title(LOCTEXT("WindowTitle", "OPUS API"))
-		.ClientSize(FVector2D(650, 600))
-		.IsInitiallyMaximized(false);
 
-		
-	FSlateApplication::Get().AddWindow(MainWindow.ToSharedRef());
-	
+		FSlateApplication::Get().AddWindow(MainWindow.ToSharedRef());
+		MainWindow->SetOnWindowClosed(FOnWindowClosed::CreateLambda([this](const TSharedRef<SWindow>& ClosedWindow)
+																	{
+																		// This code will be executed when the window is closed
+																		MainWindow = nullptr;
+																		UE_LOG(LogTemp, Warning, TEXT("OPUS Window has been closed!"));
+																	}));
+	}
+	else
+	{
+		MainWindow->BringToFront();
+	}
 }
 
 void FOPUSModule::ShowScreen(OPUSScreenState screen)

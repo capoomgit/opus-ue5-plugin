@@ -198,7 +198,6 @@ TSharedRef<ITableRow> SQueueScreen::OnGenerateRowForList(TSharedPtr<FQueueRow> I
 {
     FLinearColor TextColor;
 
-    //TODO: this section must be revised to a switch structure
     if (InItem->Status == TEXT("IN_PROGRESS"))
     {
         TextColor = FLinearColor::Yellow;
@@ -214,6 +213,10 @@ TSharedRef<ITableRow> SQueueScreen::OnGenerateRowForList(TSharedPtr<FQueueRow> I
     else if (InItem->Status == TEXT("SUSPENDED"))
     {
         TextColor = FLinearColor::Gray;
+    }
+    else if (InItem->Status == TEXT("PENDING"))
+    {
+        TextColor = FLinearColor::White;
     }
     else
     {
@@ -241,48 +244,51 @@ TSharedRef<ITableRow> SQueueScreen::OnGenerateRowForList(TSharedPtr<FQueueRow> I
                 .FillWidth(0.8f)
                 [
                     SNew(STextBlock)
-                        .Text(FText::FromString(InItem->Status))
-                        .ColorAndOpacity(TextColor)
+                    .Text(FText::FromString(InItem->Status))
+                    .ColorAndOpacity(TextColor)
                 ]
 
                 + SHorizontalBox::Slot()
                 .AutoWidth()
                 [
                     SNew(SButton)
-                        .Text(FText::FromString(TEXT("+")))
-                        .OnClicked_Lambda([this, CurrentIndex]() {
+                    .Text(FText::FromString(TEXT("↡")))
+                    .IsEnabled_Lambda([this, CurrentIndex]() 
+                        { 
+                            if (CurrentIndex >= 0 && CurrentIndex < QueueData.Num()) 
+                            {
+                                return QueueData[CurrentIndex]->Status == TEXT("COMPLETED");
+                            }
+                            return false;
+                        })
+                    .OnClicked_Lambda([this, CurrentIndex]() 
+                        {
+                            if (CurrentIndex >= 0 && CurrentIndex < QueueData.Num())
+                            {
                                 if (QueueData[CurrentIndex]->Status == TEXT("COMPLETED")) {
                                     DownloadAndUnzipMethod(QueueData[CurrentIndex]->DownloadLink, QueueData[CurrentIndex]->DateTime, QueueData[CurrentIndex]->Job);
-                                    NotificationHelper.ShowNotificationSuccess(LOCTEXT("Success", "The addition of the component is in progress. This might take some time varying the size of the job."));
+                                    NotificationHelper.ShowNotificationSuccess(LOCTEXT("Success", "Downloading component! This might take some time varying the size of the job."));
                                 }
-                                else if (QueueData[CurrentIndex]->Status == TEXT("IN_PROGRESS")) {
-                                    NotificationHelper.ShowNotificationPending(LOCTEXT("Pending", "Job is not ready yet. Please wait..."));
-                                }
-                                else if (QueueData[CurrentIndex]->Status == TEXT("FAILED")) {
-                                    NotificationHelper.ShowNotificationFail(LOCTEXT("ErrorOccured", "Job failed. Please try again later or check logs for more information"));
-                                }
-                                else if (QueueData[CurrentIndex]->Status == TEXT("SUSPENDED")) {
-                                    NotificationHelper.ShowNotificationFail(LOCTEXT("OpusError", "Due to some reasons the job is suspended from the OPUS. Please try again later or check logs for more information"));
-                                }
-                                return FReply::Handled();
-                            })
+                            }
+                            return FReply::Handled();
+                        })
                 ]
 
                 + SHorizontalBox::Slot()
                 .AutoWidth()
                 [
                     SNew(SButton)
-                        .Text(FText::FromString(TEXT("×")))
-                        .OnClicked_Lambda([this, CurrentIndex]() {
-                        // Remove the item from QueueData
-                        if (CurrentIndex >= 0 && CurrentIndex < QueueData.Num()) {
-                            QueueData.RemoveAt(CurrentIndex);
-
-                            WriteQueueToFile();
-                            QueueListView->RequestListRefresh();
-                        }
-                        return FReply::Handled();
-                            })
+                    .Text(FText::FromString(TEXT("×")))
+                    .OnClicked_Lambda([this, CurrentIndex]() 
+                        {
+                            // Remove the item from QueueData
+                            if (CurrentIndex >= 0 && CurrentIndex < QueueData.Num()) {
+                                QueueData.RemoveAt(CurrentIndex);
+                                WriteQueueToFile();
+                                QueueListView->RequestListRefresh();
+                            }
+                            return FReply::Handled();
+                        })
                 ]
         ];
 }

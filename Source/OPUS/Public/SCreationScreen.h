@@ -34,16 +34,27 @@ public:
 
 private:
 	//STRUCT DEFINITIONS
-	struct Param 
+	struct FAssetParameter 
 	{
-		TArray<float> range;
-		FString type;
-		FString attribute;
+		FString ComponentName;
+		FString AssetName;
+		FString Name;
+		FString FullName;
+		TArray<float> Range;
+		FString Type;
+		FString Attribute;
 	};
-	struct FPair
+	struct FAssetTag
 	{
-		FString SubCategory;
+		FString ComponentName;
+		FString AssetName;
 		FString Tag;
+	};
+	struct FAssetTemplate
+	{
+		FString ComponentName;
+		FString AssetName;
+		FString TemplateName;
 	};
 	
 private: 
@@ -89,7 +100,9 @@ private:
 
 	void OnParamSearchTextChanged(const FText& NewText);
 	void OnTagsSearchTextChanged(const FText& NewText);
+	void OnTemplateSearchTextChanged(const FText& NewText);
 	void OnTagSelected(TSharedPtr<FString> SelectedTag);
+	void OnTemplateSelected(TSharedPtr<FString> SelectedTemplate);
 	void OnParameterSelected(TSharedPtr<FString> ParameterSelection);
 	void OnTextCommittedInParameterInput(const FText& Text, ETextCommit::Type CommitMethod);
 
@@ -97,6 +110,7 @@ private:
 // --- HELPER METHODS -----------
 // ------------------------------
 
+	int CompareStrings(FString Str1, FString Str2);
 	FString ConstructCreateRequestBody();
 	bool IsCustomization(const FString& Keyword);
 	FReply ShowWarningWindow(FString warningMessage);
@@ -106,10 +120,12 @@ private:
 	FText GetCurrentModel() const;
 	FText GetCurrentFileType() const;
 	FText GetCurrentTextureSize() const;
+	bool TagExistsInFilteredList(TSharedPtr<FString> TagString);
 
 private:
 	FString APIKey;
 	EditorNotificationHelper NotificationHelper;
+	TMap<char, int> StringMap;
 
 	// MEMBER VARIABLE DEFINITIONS
 	FVector2D CurrentParameterRange;				// To store the range of the currently selected parameter.
@@ -144,18 +160,22 @@ private:
 	// TABLE RELATED
 	TSharedPtr<SCustomizationTable> CustomizationTable;
 
-	// MEMBER DEFINITIONS FOR PARAM SEARCHBOX
+	// Search boxes
+	TSharedPtr<SFilteredSelectionTextBox> TagSearchBox;
+	TSharedPtr<SFilteredSelectionTextBox> TemplateSearchBox;
+	TSharedPtr<SFilteredSelectionTextBox> ParameterSearchBox;
+
+	// Filtered search box suggestions
+	TArray<TSharedPtr<FString>> TagFilteredSuggestions;
+	TArray<TSharedPtr<FString>> TemplateFilteredSuggestions;
 	TArray<TSharedPtr<FString>> ParameterFilteredSuggestions;
+	TSharedPtr<FString> SelectedTagSuggestion;
+	TSharedPtr<FString> SelectedTemplateSuggestion;
 	TSharedPtr<FString> SelectedParameterSuggestion;
 
-	// Tag searchbox members
-	TArray<TSharedPtr<FString>> TagFilteredSuggestions;
-	TSharedPtr<FString> SelectedTagSuggestion;
-	TArray<TSharedPtr<FPair>> TagsList;											// Source of possible tags
-	TArray<TSharedPtr<FString>> MainCategoryKeysList;
-	TArray<TSharedPtr<FString>> ParameterSuggestions;
-
-	// Search revamped
-	TSharedPtr<SFilteredSelectionTextBox> TagSearchBox;
-	TSharedPtr<SFilteredSelectionTextBox> ParameterSearchBox;					// Search bar widget
+	// Tags, Templates, Parameters list
+	TArray<TSharedPtr<FAssetTag>> TagList;
+	TArray<TSharedPtr<FAssetTemplate>> TemplateList;
+	TArray<TSharedPtr<FAssetParameter>> ParameterList;
+	TArray<TSharedPtr<FString>> ModelComponentKeysList;
 };
