@@ -15,7 +15,7 @@ OPUS is a powerful tool that utilizes procedural modeling techniques to generate
 
 ## Installation
 
-1. Download the latest .zip file of [OPUS Unreal Plugin] (https://github.com/capoomgit/opus-ue5-plugin/releases)
+1. Download the latest .zip file of [OPUS Unreal Plugin](https://github.com/capoomgit/opus-ue5-plugin/releases)
 2. Extract the .zip file
 3. Find the folder containing your Unreal Plugins. The default location is:
     C:\Program Files\Epic Games\UE_[version]\Engine\Plugins on Windows
@@ -25,10 +25,10 @@ OPUS is a powerful tool that utilizes procedural modeling techniques to generate
 6. Go to Edit->Plugins to see all available plugins
 7. Type “OPUS” in the search bar at the top of the Plugins window
 8. Enable the plugin by clicking the checkbox next to it.
-   [![Plugin activation](/ReadmeAssets/UnrealActivatePlugin.png "Plugin activation")]
+![Plugin activation](/ReadmeAssets/UnrealActivatePlugin.png "Plugin activation")
 9. Restart Unreal Engine
 10. When you open it up you should see a new button on your Viewport Taskbar, or you can go to Window->OPUS to open up your OPUS window
-    [![OPUS Plugin Button](/ReadmeAssets/UnrealPluginButton.png "OPUS plugin button")]
+![OPUS Plugin Button](/ReadmeAssets/UnrealPluginButton.png "OPUS plugin button")
 
 
 ## Features
@@ -48,7 +48,7 @@ OPUS is a powerful tool that utilizes procedural modeling techniques to generate
 
 ## Login Screen
 
-   [![Login screen] (/ReadmeAssets/UnrealLoginPage.png "Login Screen")]
+![Login screen](/ReadmeAssets/UnrealLoginPage.png "Login Screen")
 1. Rapid key field to input your Rapid API Key
 2. Login button to log in with the provided key
 
@@ -56,7 +56,7 @@ OPUS is a powerful tool that utilizes procedural modeling techniques to generate
 
 ## Creation Screen
 
-[![Creation screen] (/ReadmeAssets/UnrealCreationPage.png "Creation Screen")]
+![Creation screen](/ReadmeAssets/UnrealCreationPage.png "Creation Screen")
 
 1. Job queue button to see jobs screen
 2. Logout button
@@ -74,7 +74,7 @@ OPUS is a powerful tool that utilizes procedural modeling techniques to generate
 
 ## Jobs Screen
 
-[![Jobs screen] (/ReadmeAssets/UnrealJobsPage.png "Jobs Screen")]
+[![Jobs screen](/ReadmeAssets/UnrealJobsPage.png "Jobs Screen")]
 
 1. Back button, click to go back to the creation page.
 2. Empty list button, click to empty all jobs from the list. You will not have access to those jobs after you delete them.
@@ -86,4 +86,4 @@ OPUS is a powerful tool that utilizes procedural modeling techniques to generate
 
 ## Important notes
 - After downloading the model successfully you will be shown an import window. Make sure to set “Import Uniform Scale” to 100.0 in order to see the objects ın propper size.
-  [![Import settings] (/ReadmeAssets/UnrealImportSettings.png "Import settings")]
+![Import settings](/ReadmeAssets/UnrealImportSettings.png "Import settings")
