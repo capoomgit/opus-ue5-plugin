@@ -427,7 +427,7 @@ void SCreationScreen::OnTagsSearchTextChanged(const FText& NewText)
             for (const TSharedPtr<FKeywordTableRow> Row : CustomizationTable->TableRows)
             {
                 // Check if subcategory tag already assigned
-                if (Row->Customization->Equals(CurrentTag->ComponentName))
+                if (Row->Customization->Equals(CurrentTag->ComponentName) && Row->Value->Equals(CurrentTag->Tag))
                 {
                     TagCategoryAlreadyAdded = true;
                     break;
@@ -464,7 +464,7 @@ void SCreationScreen::OnTemplateSearchTextChanged(const FText& NewText)
             for (const TSharedPtr<FKeywordTableRow> Row : CustomizationTable->TableRows)
             {
                 // Check if subcategory tag already assigned
-                if (Row->Customization->Equals(CurrentTemplate->ComponentName))
+                if (Row->Customization->Equals(CurrentTemplate->ComponentName) && Row->Value->Equals(CurrentTemplate->TemplateName))
                 {
                     CategoryAlreadyAdded = true;
                     break;

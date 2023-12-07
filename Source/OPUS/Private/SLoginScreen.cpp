@@ -74,7 +74,6 @@ void SLoginScreen::Construct(const FArguments& InArgs)
 
                     + SHorizontalBox::Slot()
                     .AutoWidth()
-                    .Padding(0, 0, 50, 0)
                     [
                         SNew(SBorder)
                         .BorderImage(FCoreStyle::Get().GetBrush("Border"))
