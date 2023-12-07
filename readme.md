@@ -74,7 +74,7 @@ OPUS is a powerful tool that utilizes procedural modeling techniques to generate
 
 ## Jobs Screen
 
-[![Jobs screen](/ReadmeAssets/UnrealJobsScreen.png "Jobs Screen")]
+![Jobs screen](/ReadmeAssets/UnrealJobsScreen.png "Jobs Screen")
 
 1. Back button, click to go back to the creation page.
 2. Empty list button, click to empty all jobs from the list. You will not have access to those jobs after you delete them.
