@@ -40,7 +40,7 @@ OPUS is a powerful tool that utilizes procedural modeling techniques to generate
 * Caching of the assets.
 * Automatic addition of assets into Unreal Engine.
 
-<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+<br><br>
 
 # User Guide
 
@@ -48,7 +48,7 @@ OPUS is a powerful tool that utilizes procedural modeling techniques to generate
 
 ## Login Screen
 
-![Login screen](/ReadmeAssets/UnrealLoginPage.png "Login Screen")
+![Login screen](/ReadmeAssets/UnrealLoginScreen.png "Login Screen")
 1. Rapid key field to input your Rapid API Key
 2. Login button to log in with the provided key
 
@@ -56,7 +56,7 @@ OPUS is a powerful tool that utilizes procedural modeling techniques to generate
 
 ## Creation Screen
 
-![Creation screen](/ReadmeAssets/UnrealCreationPage.png "Creation Screen")
+![Creation screen](/ReadmeAssets/UnrealCreationScreen.png "Creation Screen")
 
 1. Job queue button to see jobs screen
 2. Logout button
@@ -74,7 +74,7 @@ OPUS is a powerful tool that utilizes procedural modeling techniques to generate
 
 ## Jobs Screen
 
-[![Jobs screen](/ReadmeAssets/UnrealJobsPage.png "Jobs Screen")]
+[![Jobs screen](/ReadmeAssets/UnrealJobsScreen.png "Jobs Screen")]
 
 1. Back button, click to go back to the creation page.
 2. Empty list button, click to empty all jobs from the list. You will not have access to those jobs after you delete them.
