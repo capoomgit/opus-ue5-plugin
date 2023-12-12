@@ -421,7 +421,7 @@ void SCreationScreen::OnTagsSearchTextChanged(const FText& NewText)
     for (const TSharedPtr<FAssetTag>& CurrentTag : TagList)
     {
         bool TagCategoryAlreadyAdded = false;
-        if (CurrentTag->Tag.Contains(CurrentInput) || CurrentTag->ComponentName.Contains(CurrentInput))
+        if (CurrentTag->Tag.Contains(CurrentInput) || CurrentTag->ComponentName.Contains(CurrentInput) || CurrentInput.IsEmpty())
         {
             // Loop through rows in the customizations table
             for (const TSharedPtr<FKeywordTableRow> Row : CustomizationTable->TableRows)
@@ -458,7 +458,7 @@ void SCreationScreen::OnTemplateSearchTextChanged(const FText& NewText)
     for (const TSharedPtr<FAssetTemplate>& CurrentTemplate : TemplateList)
     {
         bool CategoryAlreadyAdded = false;
-        if (CurrentTemplate->TemplateName.Contains(CurrentInput) || CurrentTemplate->ComponentName.Contains(CurrentInput))
+        if (CurrentTemplate->TemplateName.Contains(CurrentInput) || CurrentTemplate->ComponentName.Contains(CurrentInput) || CurrentInput.IsEmpty())
         {
             // Loop through rows in the customizations table
             for (const TSharedPtr<FKeywordTableRow> Row : CustomizationTable->TableRows)
@@ -494,7 +494,7 @@ void SCreationScreen::OnParamSearchTextChanged(const FText& NewText)
     
     for (const TSharedPtr<FAssetParameter>& CurrentParameter : ParameterList)
     {
-        if (CurrentParameter->FullName.Contains(CurrentInput))
+        if (CurrentParameter->FullName.Contains(CurrentInput) || CurrentInput.IsEmpty())
         {
             // Loop through rows in the customizations table
             for (const TSharedPtr<FKeywordTableRow> Row : CustomizationTable->TableRows)

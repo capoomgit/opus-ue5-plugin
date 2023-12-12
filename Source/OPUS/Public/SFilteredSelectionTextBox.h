@@ -62,5 +62,6 @@ private:
 private:
 	int32 KeyboardUserIndex;
 	int LoadingIteration;
+	const TArray<TSharedPtr<FString>>* ListItems;
 
 };

@@ -52,6 +52,7 @@ void SFilteredSelectionTextBox::Construct(const FArguments& InArgs)
 	];
 
     KeyboardUserIndex = FSlateApplication::Get().GetUserIndexForKeyboard();
+    ListItems = InArgs._ListItemsSource;
 }
 
 FText SFilteredSelectionTextBox::GetText() const
@@ -150,7 +151,7 @@ void SFilteredSelectionTextBox::SelectionsLoadingStarted()
 void SFilteredSelectionTextBox::SelectionsLoadingComplete()
 {
 
-    if (SuggestionsListView->GetItems().Num() == 0)
+    if (ListItems->Num() == 0)
     {
         EditableTextBox->SetText(FText::FromString("No customization for current model"));
         EditableTextBox->SetEnabled(false);

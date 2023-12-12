@@ -7,9 +7,9 @@
 	"Category": "Other",
 	"CreatedBy": "Capoom",
 	"CreatedByURL": "https://www.capoom.com/",
-	"DocsURL": "",
+	"DocsURL": "https://github.com/capoomgit/opus-ue5-plugin",
 	"MarketplaceURL": "",
-	"SupportURL": "",
+	"SupportURL": "https://github.com/capoomgit/opus-ue5-plugin",
 	"CanContainContent": false,
 	"IsBetaVersion": false,
 	"IsExperimentalVersion": false,
@@ -18,7 +18,10 @@
 		{
 			"Name": "OPUS",
 			"Type": "Editor",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "Default",
+			"PlatformAllowList": [
+				"Win64"
+			]
 		}
 	]
 }

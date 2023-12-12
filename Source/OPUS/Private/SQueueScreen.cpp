@@ -10,7 +10,7 @@
 #include "URLHelper.h"
 #include "Widgets/Layout/SScrollBox.h"
 #include "Factories/FbxFactory.h"
-#include "AssetRegistryModule.h"
+#include "AssetRegistry/AssetRegistryModule.h"
 #include "PackageTools.h"
 
 #define LOCTEXT_NAMESPACE "FOPUSModule"
