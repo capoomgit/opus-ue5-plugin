@@ -290,23 +290,17 @@ void SCreationScreen::Construct(const FArguments& InArgs)
 
             AsyncTask(ENamedThreads::GameThread, [this]()
                 {
-                    SendForthAPIRequest_ModelNames();
-                });
-        });
-
-    AsyncTask(ENamedThreads::AnyBackgroundThreadNormalTask, [this]()
-        {
-            FPlatformProcess::Sleep(3);
-
-            AsyncTask(ENamedThreads::GameThread, [this]()
-                {
-                    SendThirdAPIRequest_AttributeName();
+                    SendAPIRequest_ModelNames();
                 });
         });
 	
     TagSearchBox->OnSuggestionSelected.AddRaw(this, &SCreationScreen::OnTagSelected);
     TemplateSearchBox->OnSuggestionSelected.AddRaw(this, &SCreationScreen::OnTemplateSelected);
     ParameterSearchBox->OnSuggestionSelected.AddRaw(this, &SCreationScreen::OnParameterSelected);
+    TagSearchBox->SelectionsLoadingStarted();
+    TemplateSearchBox->SelectionsLoadingStarted();
+    ParameterSearchBox->SelectionsLoadingStarted();
+
 }
 
 // ------------------------------
@@ -363,8 +357,22 @@ void SCreationScreen::ModelComboBoxSelectionChanged(TSharedPtr<FString> NewItem,
 
         CustomizationTable->ResetTable();
 
+        // Give feedback
+        TagSearchBox->SelectionsLoadingStarted();
+        TemplateSearchBox->SelectionsLoadingStarted();
+        ParameterSearchBox->SelectionsLoadingStarted();
+
         // Make an API call with the new item
-        SendThirdAPIRequest_AttributeName();
+        AsyncTask(ENamedThreads::AnyBackgroundThreadNormalTask, [this]()
+            {
+                FPlatformProcess::Sleep(1.5);
+
+                AsyncTask(ENamedThreads::GameThread, [this]()
+                    {
+                        SendAPIRequest_AttributeName();
+                    });
+            });
+        
 
         // Refresh the list view
         TagSearchBox->RequestListRefresh();
@@ -375,8 +383,6 @@ void SCreationScreen::ModelComboBoxSelectionChanged(TSharedPtr<FString> NewItem,
 
         ParameterSearchBox->RequestListRefresh();
         ParameterSearchBox->Invalidate(EInvalidateWidget::Layout);
-
-        
     }
 }
 
@@ -524,20 +530,61 @@ void SCreationScreen::OnParamSearchTextChanged(const FText& NewText)
 
 void SCreationScreen::OnTagSelected(TSharedPtr<FString> TagSelection)
 {
-    SelectedTagSuggestion = TagSelection;
-    CustomizationTable->AddCustomizationToTable(TagSelection, false);
+    FString ComponentName;
+    FString TagName;
+
+    TagSelection->Split(TEXT("-"), &ComponentName, &TagName);
+
+    ComponentName = ComponentName.TrimStartAndEnd();
+    TagName = TagName.TrimStartAndEnd();
+
+    for (const TSharedPtr<FAssetTag>& CurrentTag : TagList)
+    {
+        if (CurrentTag->Tag.Equals(TagName) && CurrentTag->ComponentName.Equals(ComponentName))
+        {
+            CustomizationTable->AddTagToTable(CurrentTag);
+        }
+    }    
 }
 
 void SCreationScreen::OnTemplateSelected(TSharedPtr<FString> TemplateSelection)
 {
-    SelectedTemplateSuggestion = TemplateSelection;
-    CustomizationTable->AddCustomizationToTable(TemplateSelection, false);
+    FString ComponentName;
+    FString TemplateName;
+
+    TemplateSelection->Split(TEXT("-"), &ComponentName, &TemplateName);
+
+    ComponentName = ComponentName.TrimStartAndEnd();
+    TemplateName = TemplateName.TrimStartAndEnd();
+
+    for (const TSharedPtr<FAssetTemplate>& CurrentTemplate : TemplateList)
+    {
+        bool TagCategoryAlreadyAdded = false;
+        if (CurrentTemplate->TemplateName.Equals(TemplateName) && CurrentTemplate->ComponentName.Equals(ComponentName))
+        {
+            CustomizationTable->AddTemplateToTable(CurrentTemplate);
+        }
+    }
 }
 
 void SCreationScreen::OnParameterSelected(TSharedPtr<FString> ParameterSelection)
 {
-    SelectedParameterSuggestion = ParameterSelection;
-    CustomizationTable->AddCustomizationToTable(ParameterSelection, true);
+    FString AssetName;
+    FString ParameterName;
+
+    ParameterSelection->Split(TEXT("/"), &AssetName, &ParameterName);
+
+    AssetName = AssetName.TrimStartAndEnd();
+    ParameterName = ParameterName.TrimStartAndEnd();
+
+    for (const TSharedPtr<FAssetParameter>& CurrentParameter : ParameterList)
+    {
+        bool TagCategoryAlreadyAdded = false;
+        if (CurrentParameter->Name.Equals(ParameterName) && CurrentParameter->AssetName.Equals(AssetName))
+        {
+            CustomizationTable->AddParameterToTable(CurrentParameter);
+        }
+    }
 }
 
 // ------------------------------
@@ -602,7 +649,7 @@ FText SCreationScreen::GetParamHintText(FVector2D ParameterRange) const
     }
 }
 
-FReply SCreationScreen::ShowWarningWindow(FString warningMessage)
+FReply SCreationScreen::ShowWarningWindow(FString WarningMessage)
 {
     TSharedPtr<SWindow> WarningWindowPtr; // Declare a shared pointer
     TSharedRef<SWindow> WarningWindow = SNew(SWindow)
@@ -622,7 +669,7 @@ FReply SCreationScreen::ShowWarningWindow(FString warningMessage)
         .Padding(15)
         [
             SNew(STextBlock)
-            .Text(FText::FromString(warningMessage))
+            .Text(FText::FromString(WarningMessage))
             .Justification(ETextJustify::Center)
         ]
 
@@ -750,6 +797,7 @@ FString SCreationScreen::ConstructCreateRequestBody()
                 JsonData += ",\r\n";
             }
             isFirstParameter = false;
+
             JsonData += "        \"" + *row->Customization + "\": " + *row->Value;
         }
     }
@@ -863,7 +911,6 @@ void SCreationScreen::OnAPIRequestCreateCompleted(FHttpRequestPtr Request, FHttp
             if (JsonObject->TryGetStringField("overall_status", status))
             {
                 UE_LOG(LogTemp, Warning, TEXT("Job status: %s"), *status);
-                NewJobStatus = status;
             }
             else
             {
@@ -886,7 +933,7 @@ void SCreationScreen::OnAPIRequestCreateCompleted(FHttpRequestPtr Request, FHttp
                 FString AbsolutePath = SaveDirectory + "/" + FileName;
 
                 FString CurrentDateTime = FDateTime::Now().ToString(TEXT("%Y-%m-%d-%H-%M-%S"));
-                FString TextToSave = *CurrentModel + TEXT(" ") + CurrentDateTime + TEXT(" ") + NewJobStatus + TEXT(" ") + *APIResponseID;
+                FString TextToSave = *CurrentModel + TEXT(" ") + CurrentDateTime + TEXT(" ") + status + TEXT(" ") + *APIResponseID;
 
                 // Append to file. This will create the file if it doesn't exist.
                 FFileHelper::SaveStringToFile(TextToSave + LINE_TERMINATOR, *AbsolutePath, FFileHelper::EEncodingOptions::AutoDetect, &IFileManager::Get(), EFileWrite::FILEWRITE_Append);
@@ -924,7 +971,7 @@ void SCreationScreen::OnAPIRequestCreateCompleted(FHttpRequestPtr Request, FHttp
     }
 }
 
-void SCreationScreen::SendThirdAPIRequest_AttributeName()
+void SCreationScreen::SendAPIRequest_AttributeName()
 {
     FString Url = URLHelper::GetAttributesWithName;
     FString Parameters = "?name=" + *CurrentModel;
@@ -933,17 +980,12 @@ void SCreationScreen::SendThirdAPIRequest_AttributeName()
     HttpRequest->SetVerb("GET");
     HttpRequest->SetHeader("X-RapidAPI-Key", APIKey);
     HttpRequest->SetHeader("X-RapidAPI-Host", "opus5.p.rapidapi.com");
-    HttpRequest->OnProcessRequestComplete().BindRaw(this, &SCreationScreen::OnThirdAPIRequestAttributeNameCompleted);
+    HttpRequest->OnProcessRequestComplete().BindRaw(this, &SCreationScreen::OnAPIRequestAttributeNameCompleted);
     HttpRequest->ProcessRequest();
     UE_LOG(LogTemp, Log, TEXT("Sending request to URL: %s"), *(Url + Parameters));
-
-    // Give feedback
-    TagSearchBox->SelectionsLoadingStarted();
-    TemplateSearchBox->SelectionsLoadingStarted();
-    ParameterSearchBox->SelectionsLoadingStarted();
 }
 
-void SCreationScreen::OnThirdAPIRequestAttributeNameCompleted(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
+void SCreationScreen::OnAPIRequestAttributeNameCompleted(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
 {
     UE_LOG(LogTemp, Warning, TEXT("Inside OnThirdAPIRequestAttributeNameCompleted. bWasSuccessful: %s, Response Code: %d"), bWasSuccessful ? TEXT("True") : TEXT("False"), Response.IsValid() ? Response->GetResponseCode() : -1);
 
@@ -966,14 +1008,12 @@ void SCreationScreen::OnThirdAPIRequestAttributeNameCompleted(FHttpRequestPtr Re
             for (const auto& Model : JsonObject->Values)
             {
                 TSharedPtr<FJsonObject> Components = Model.Value->AsObject();
-                UE_LOG(LogTemp, Warning, TEXT("Main Category: %s"), *Model.Key);
 
                 // Loop over sub-categories like "stair_upper"
                 for (const auto& ModelComponent : Components->Values)
                 {
                     FString ModelComponentKey = ModelComponent.Key;
                     ModelComponentKeysList.Add(MakeShared<FString>(ModelComponentKey));
-                    UE_LOG(LogTemp, Warning, TEXT("SubCategoryKey: %s"), *ModelComponentKey);
 
                     TSharedPtr<FJsonObject> ModelComponentObj = ModelComponent.Value->AsObject();
                     const TArray<TSharedPtr<FJsonValue>>* AssetsArray;
@@ -1095,40 +1135,33 @@ void SCreationScreen::OnThirdAPIRequestAttributeNameCompleted(FHttpRequestPtr Re
                                 for (const auto& ParameterValue : *ParametersArray)
                                 {
                                     TSharedPtr<FJsonObject> ParameterObj = ParameterValue->AsObject();
-
                                     FAssetParameter NewParameter;
+                                        
                                     NewParameter.ComponentName = ModelComponentKey;
                                     NewParameter.AssetName = AssetName;
                                     NewParameter.Name = ParameterObj->GetStringField("name");
+                                    NewParameter.Type = ParameterObj->GetStringField("type");
 
                                     // not needed for now
                                     //NewParameter.Attribute = ParameterObj->GetStringField("attribute");
                                     NewParameter.FullName = NewParameter.AssetName + "/" + NewParameter.Name;;
-
-                                    ParameterList.Add(MakeShared<FAssetParameter>(NewParameter));
-                                    ParameterFilteredSuggestions.Add(MakeShared<FString>(NewParameter.FullName));
-
                                     // Extract the range of the parameters if available
-                                    if (ParameterObj->HasField("range"))
+
+                                    const TArray<TSharedPtr<FJsonValue>>* RangeArray;
+                                    if (ParameterObj->TryGetArrayField("range", RangeArray))
                                     {
-                                        const TArray<TSharedPtr<FJsonValue>>* RangeArray;
-                                        if (ParameterObj->TryGetArrayField("range", RangeArray))
+                                        // Extract the first two range values
+                                        float MinValue = (*RangeArray)[0]->AsNumber();
+                                        float MaxValue = (*RangeArray)[1]->AsNumber();
+
+                                        NewParameter.Range = FVector2D(MinValue, MaxValue);
+
+                                        if (MaxValue - MinValue != 0)
                                         {
-                                            // Extract the first two range values
-                                            float MinValue = (*RangeArray)[0]->AsNumber();
-                                            float MaxValue = (*RangeArray)[1]->AsNumber();
-
-                                            // Store this in the map
-                                            CustomizationTable->ParameterRanges.Add(NewParameter.FullName, FVector2D(MinValue, MaxValue));
-
-                                            for (const auto& RangeValue : *RangeArray)
-                                            {
-                                                double Value = RangeValue->AsNumber();
-                                                UE_LOG(LogTemp, Warning, TEXT("Range Value: %f"), Value);
-                                            }
+                                            ParameterList.Add(MakeShared<FAssetParameter>(NewParameter));
+                                            ParameterFilteredSuggestions.Add(MakeShared<FString>(NewParameter.FullName));
                                         }
                                     }
-                                    
                                 }
                             }
                         }
@@ -1144,7 +1177,7 @@ void SCreationScreen::OnThirdAPIRequestAttributeNameCompleted(FHttpRequestPtr Re
     ParameterSearchBox->SelectionsLoadingComplete();
 }
 
-void SCreationScreen::SendForthAPIRequest_ModelNames()
+void SCreationScreen::SendAPIRequest_ModelNames()
 {
     FString Url = URLHelper::GetModels;
     FString JsonData = "";
@@ -1156,12 +1189,12 @@ void SCreationScreen::SendForthAPIRequest_ModelNames()
     HttpRequest->SetHeader("X-RapidAPI-Key", APIKey);
     HttpRequest->SetHeader("X-RapidAPI-Host", "opus5.p.rapidapi.com");
     HttpRequest->SetContentAsString(JsonData);
-    HttpRequest->OnProcessRequestComplete().BindRaw(this, &SCreationScreen::OnForthAPIRequestModelNamesCompleted);
+    HttpRequest->OnProcessRequestComplete().BindRaw(this, &SCreationScreen::OnAPIRequestModelNamesCompleted);
     HttpRequest->ProcessRequest();
     UE_LOG(LogTemp, Log, TEXT("Sending request to URL: %s"), *(Url));
 }
 
-void SCreationScreen::OnForthAPIRequestModelNamesCompleted(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
+void SCreationScreen::OnAPIRequestModelNamesCompleted(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
 {
     if (bWasSuccessful && Response->GetResponseCode() == 200)
     {
@@ -1221,8 +1254,60 @@ void SCreationScreen::OnForthAPIRequestModelNamesCompleted(FHttpRequestPtr Reque
     }
     else
     {
+        ShowConnectionErrorWarning();
         UE_LOG(LogTemp, Error, TEXT("API request was not successful. Response code: %d, Error: %s"), Response->GetResponseCode(), *Response->GetContentAsString());
     }
+}
+
+FReply SCreationScreen::ShowConnectionErrorWarning()
+{
+    TSharedPtr<SWindow> WarningWindowPtr; // Declare a shared pointer
+    TSharedRef<SWindow> WarningWindow = SNew(SWindow)
+        .Title(LOCTEXT("WarningTitle", "Warning"))
+        .ClientSize(FVector2D(600, 150))
+        .IsInitiallyMaximized(false);
+
+    WarningWindowPtr = WarningWindow; // Store the window in the shared pointer
+
+    FSlateApplication::Get().AddWindowAsNativeChild(WarningWindow, FSlateApplication::Get().GetActiveTopLevelWindow().ToSharedRef());
+
+    WarningWindow->SetContent(
+        SNew(SVerticalBox)
+
+        + SVerticalBox::Slot()
+        .AutoHeight()
+        .Padding(15)
+        [
+            SNew(STextBlock)
+                .Text(FText::FromString("Couldn't connect to OPUS API \n Make sure you have a stable internet connection"))
+                .Justification(ETextJustify::Center)
+        ]
+
+        + SVerticalBox::Slot()
+        .AutoHeight()
+        .HAlign(HAlign_Center)
+        .Padding(15)
+        [
+            SNew(SHorizontalBox)
+
+                + SHorizontalBox::Slot()
+                .AutoWidth()
+                [
+                    SNew(SButton)
+                        .Text(LOCTEXT("OkButton", "Ok"))
+                        .OnClicked_Lambda([this, WarningWindowPtr]()
+                            {
+                                if (WarningWindowPtr.IsValid())
+                                {
+                                    WarningWindowPtr->RequestDestroyWindow();
+                                    
+                                }
+                                SendAPIRequest_ModelNames();
+                                return FReply::Handled();
+                            })
+                ]
+        ]);
+    return FReply::Handled();
 }
 
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION

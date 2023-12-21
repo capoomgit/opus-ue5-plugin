@@ -58,7 +58,7 @@ void FOPUSModule::ShutdownModule()
 void FOPUSModule::PluginButtonClicked()
 {
 	RegisterLoginScreen();
-	CreateWindow();
+	CreatePluginWindow();
 
 	ShowScreen(CurrentScreenState);
 }
@@ -132,7 +132,7 @@ void FOPUSModule::RegisterQueueScreen()
 }
 
 // Create plugin window to populate
-void FOPUSModule::CreateWindow()
+void FOPUSModule::CreatePluginWindow()
 {
 	if (!MainWindow.IsValid())
 	{

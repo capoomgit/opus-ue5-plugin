@@ -9,8 +9,6 @@
 #include "SFilteredSelectionTextBox.h"
 #include"SCustomizationTable.h"
 
-
-//DECLARE_MULTICAST_DELEGATE(FOnQueueScreenEnabled);
 DECLARE_MULTICAST_DELEGATE(FOnQueueScreenEnabled)
 DECLARE_MULTICAST_DELEGATE(FOnLogout);
 DECLARE_MULTICAST_DELEGATE(FOnJobCompleted);
@@ -32,31 +30,6 @@ public:
 	FOnQueueScreenEnabled OnQueueScreenEnabledDelegate;
 	FOnLogout OnLogoutDelegate;
 
-private:
-	//STRUCT DEFINITIONS
-	struct FAssetParameter 
-	{
-		FString ComponentName;
-		FString AssetName;
-		FString Name;
-		FString FullName;
-		TArray<float> Range;
-		FString Type;
-		FString Attribute;
-	};
-	struct FAssetTag
-	{
-		FString ComponentName;
-		FString AssetName;
-		FString Tag;
-	};
-	struct FAssetTemplate
-	{
-		FString ComponentName;
-		FString AssetName;
-		FString TemplateName;
-	};
-	
 private: 
 
 // ------------------------------
@@ -76,11 +49,10 @@ private:
 
 	void SendAPIRequest_Create();
 	void OnAPIRequestCreateCompleted(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
-	void SendSecondAPIRequest_JobResult(FString jobID);
-	void SendThirdAPIRequest_AttributeName();
-	void OnThirdAPIRequestAttributeNameCompleted(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
-	void SendForthAPIRequest_ModelNames();
-	void OnForthAPIRequestModelNamesCompleted(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
+	void SendAPIRequest_AttributeName();
+	void OnAPIRequestAttributeNameCompleted(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
+	void SendAPIRequest_ModelNames();
+	void OnAPIRequestModelNamesCompleted(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
 
 // ------------------------------
 // --- COMBOBOX METHODS ---------
@@ -113,8 +85,9 @@ private:
 	int CompareStrings(FString Str1, FString Str2);
 	FString ConstructCreateRequestBody();
 	bool IsCustomization(const FString& Keyword);
-	FReply ShowWarningWindow(FString warningMessage);
+	FReply ShowWarningWindow(FString WarningMessage);
 	FReply ShowResetCustomizationWarning();
+	FReply ShowConnectionErrorWarning();
 	EVisibility GetParamInputBoxVisibility() const;
 	FText GetParamHintText(FVector2D ParameterRange) const;
 	FText GetCurrentModel() const;
@@ -130,12 +103,8 @@ private:
 	// MEMBER VARIABLE DEFINITIONS
 	FVector2D CurrentParameterRange;				// To store the range of the currently selected parameter.
 	FString APIResponseID;
-	FString JobStatus;
-	FString NewJobStatus;
 	FString SecondAPIResponse;
 	FString ThirdAPIResponse;
-	int32 CurrentQueueIndex = 0;
-	int32 SelectedJobIndex = -1;
 
 	//BUTTONS
 	TSharedPtr<SButton> CreateButton;
@@ -169,9 +138,6 @@ private:
 	TArray<TSharedPtr<FString>> TagFilteredSuggestions;
 	TArray<TSharedPtr<FString>> TemplateFilteredSuggestions;
 	TArray<TSharedPtr<FString>> ParameterFilteredSuggestions;
-	TSharedPtr<FString> SelectedTagSuggestion;
-	TSharedPtr<FString> SelectedTemplateSuggestion;
-	TSharedPtr<FString> SelectedParameterSuggestion;
 
 	// Tags, Templates, Parameters list
 	TArray<TSharedPtr<FAssetTag>> TagList;

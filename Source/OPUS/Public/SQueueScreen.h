@@ -6,6 +6,7 @@
 #include "Widgets/SCompoundWidget.h"
 #include "Http.h"
 #include "EditorNotificationHelper.h"
+#include "7zpp.h"
 
 DECLARE_MULTICAST_DELEGATE(FOnCreationScreenEnabled);
 
@@ -61,6 +62,7 @@ private:
 
 	// Download and unzip methods
 	bool ExtractWith7Zip(const FString& ZipFile, const FString& DestinationDirectory);
+	void ZipProgressCallback();
 	void DownloadAndUnzipMethod(const FString& URL, const FString& DateTime, const FString& JobName);
 	void ImportFBX(const FString& DirectoryPath);
 
@@ -76,6 +78,7 @@ private:
 	FString SecondAPILink;
 	bool IsQueueLoopEnabled = false;
 
+	SevenZip::ProgressCallback* UnzipProgressCallback;
 	TArray<TSharedPtr<FString>> AvailableFileTypes;
 	EditorNotificationHelper NotificationHelper;
 };

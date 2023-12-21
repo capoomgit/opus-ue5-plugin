@@ -63,7 +63,7 @@ TSharedRef<ITableRow> SCustomizationTable::GenerateTableRow(TSharedPtr<FKeywordT
                     .Text(FText::FromString(*(RowData->Customization)))
                 ]
 
-                // Value column
+                // Value slider
                 + SHorizontalBox::Slot()
                 .FillWidth(0.5)
                 .Padding(0, 0, 5, 0)
@@ -72,11 +72,13 @@ TSharedRef<ITableRow> SCustomizationTable::GenerateTableRow(TSharedPtr<FKeywordT
                     .MinValue(RowData->ParameterRange.X)
                     .MaxValue(RowData->ParameterRange.Y)
                     .Value(RowData->ParameterRange.X)
+                    .StepSize(RowData->ValueType->Equals("int") ? 1.0 : 0.001)
                     .Visibility(RowData->IsParameter ? EVisibility::Visible : EVisibility::Hidden)
                     .IsFocusable(true)
                     .OnValueChanged(this, &SCustomizationTable::OnSliderValueChanged, RowData)
                 ]
 
+                // Value box
                 + SHorizontalBox::Slot()
                 .FillWidth(0.6)
                 .Padding(0, 0, 5, 0)
@@ -102,15 +104,71 @@ TSharedRef<ITableRow> SCustomizationTable::GenerateTableRow(TSharedPtr<FKeywordT
         ];
 }
 
-void SCustomizationTable::AddCustomizationToTable(TSharedPtr<FString> Customization, bool IsParameter)
+void SCustomizationTable::AddTagToTable(TSharedPtr<FAssetTag> TagCustomization)
 {
-    if (IsParameter)
+    if (!DoesCustomizationExist(TagCustomization->ComponentName, TagCustomization->Tag))
     {
-        ParseParameterInput(Customization);
+        // Add new row if tag doesnt exist in table
+        TSharedPtr<FKeywordTableRow> newRow = MakeShared<FKeywordTableRow>();
+        newRow->Customization = MakeShared<FString>(TagCustomization->ComponentName);
+        newRow->Value = MakeShared<FString>(TagCustomization->Tag);
+        newRow->ValueType = MakeShared<FString>("string");
+        newRow->IsParameter = false;
+        newRow->ParameterRange = FVector2D::Zero();
+        TableRows.Add(newRow);
+        UE_LOG(LogTemp, Warning, TEXT("New Row Added! Component: %s, Tag: %s"), **newRow->Customization, **newRow->Value);
     }
-    else
+
+    // Refresh table
+    TableView->RequestListRefresh();
+    TableView->Invalidate(EInvalidateWidget::LayoutAndVolatility);
+}
+
+void SCustomizationTable::AddTemplateToTable(TSharedPtr<FAssetTemplate> TemplateCustomization)
+{
+    if (!DoesCustomizationExist(TemplateCustomization->ComponentName, TemplateCustomization->TemplateName))
     {
-        ParseTagInput(Customization);
+        // Add new row if tag doesnt exist in table
+        TSharedPtr<FKeywordTableRow> newRow = MakeShared<FKeywordTableRow>();
+        newRow->Customization = MakeShared<FString>(TemplateCustomization->ComponentName);
+        newRow->Value = MakeShared<FString>(TemplateCustomization->TemplateName);
+        newRow->ValueType = MakeShared<FString>("string");
+        newRow->IsParameter = false;
+        newRow->ParameterRange = FVector2D::Zero();
+        TableRows.Add(newRow);
+        UE_LOG(LogTemp, Warning, TEXT("New Row Added! Component: %s, Taemplate %s"), **newRow->Customization, **newRow->Value);
+    }
+
+    // Refresh table
+    TableView->RequestListRefresh();
+    TableView->Invalidate(EInvalidateWidget::LayoutAndVolatility);
+}
+
+void SCustomizationTable::AddParameterToTable(TSharedPtr<FAssetParameter> ParameterCustomization)
+{
+    if (!DoesParameterCustomizationExist(ParameterCustomization->FullName))
+    {
+        TSharedPtr<FKeywordTableRow> newRow = MakeShared<FKeywordTableRow>();
+        newRow->Customization = MakeShared<FString>(ParameterCustomization->FullName);
+        newRow->IsParameter = true;
+        newRow->ValueType = MakeShared<FString>(ParameterCustomization->Type);
+        FVector2D Range = ParameterCustomization->Range;
+        newRow->ParameterRange = Range;
+        FString ParameterValue;
+
+        if (newRow->ValueType->Equals("int"))
+        {
+            int32 IntValue = FMath::FloorToInt32(newRow->ParameterRange.X);
+            ParameterValue = FString::FromInt(IntValue); 
+        }
+        else
+        {
+            ParameterValue = FString::SanitizeFloat(newRow->ParameterRange.X);
+        }
+        newRow->Value = MakeShared<FString>(ParameterValue);
+        
+        TableRows.Add(newRow);
+        UE_LOG(LogTemp, Warning, TEXT("New Parameter Row Added! Parameter: %s, Value: %s"), **newRow->Customization, **newRow->Value);
     }
 
     // Refresh table
@@ -132,89 +190,44 @@ void SCustomizationTable::ResetTable()
     }
 }
 
-void SCustomizationTable::ParseTagInput(TSharedPtr<FString> TagInput)
+bool SCustomizationTable::DoesCustomizationExist(FString Customization, FString Value)
 {
-    FString TagBoxContent = *TagInput;
-    TArray<FString> ParsedStrings;
-
-    bool bFound = false;
-
-    if (TagBoxContent.ParseIntoArray(ParsedStrings, TEXT(" - "), true) == 2)
-    {
-        TSharedPtr<FString> MainCategory = MakeShared<FString>(ParsedStrings[0].TrimStartAndEnd());
-        TSharedPtr<FString> CurrentTag = MakeShared<FString>(ParsedStrings[1].TrimStartAndEnd());
-
-        for (TSharedPtr<FKeywordTableRow>& existingRow : TableRows)
-        {
-            if (existingRow->Customization->Equals(*MainCategory) && existingRow->Value->Equals(*CurrentTag))
-            {
-                existingRow->Value = CurrentTag;  // Update the value only
-                bFound = true;
-                break;
-            }
-        }
-
-        if (!bFound)
-        {
-            // Add new row if tag doesnt exist in table
-            TSharedPtr<FKeywordTableRow> newRow = MakeShared<FKeywordTableRow>();
-            newRow->Customization = MainCategory;
-            newRow->Value = CurrentTag;
-            newRow->IsParameter = false;
-            newRow->ParameterRange = FVector2D::Zero();
-            TableRows.Add(newRow);
-            UE_LOG(LogTemp, Warning, TEXT("New Row Added! Main Category: %s, Tag: %s"), **newRow->Customization, **newRow->Value);
-        }
-
-        TableView->RequestListRefresh();
-        TableView->Invalidate(EInvalidateWidget::LayoutAndVolatility);
-    }
-    else
-    {
-        UE_LOG(LogTemp, Warning, TEXT("The Tag input format is invalid!"));
-    }
-}
-
-void SCustomizationTable::ParseParameterInput(TSharedPtr<FString> ParameterInput)
-{
-    bool bFoundParam = false;
-
     for (TSharedPtr<FKeywordTableRow>& existingRow : TableRows)
     {
-        if (existingRow->Customization->Equals(*ParameterInput))
+        if (existingRow->Customization->Equals(Customization) && existingRow->Value->Equals(Value))
         {
-            bFoundParam = true;
-            break;
+            return true;
         }
     }
-
-    if (!bFoundParam)
-    {
-        TSharedPtr<FKeywordTableRow> newRow = MakeShared<FKeywordTableRow>();
-        newRow->Customization = ParameterInput;
-        newRow->IsParameter = true;
-        newRow->ParameterRange = GetParameterRange(ParameterInput);
-
-        FString ParameterValue = FString::SanitizeFloat(newRow->ParameterRange.X);
-        newRow->Value = MakeShared<FString>(ParameterValue);
-        TableRows.Add(newRow);
-
-        TableView->RequestListRefresh();
-        TableView->Invalidate(EInvalidateWidget::LayoutAndVolatility);
-        UE_LOG(LogTemp, Warning, TEXT("New Parameter Row Added! Parameter: %s, Value: %s"), **newRow->Customization, **newRow->Value);
-    }
-
+    return false;
 }
 
-FVector2D SCustomizationTable::GetParameterRange(TSharedPtr<FString> ParameterName)
+bool SCustomizationTable::DoesParameterCustomizationExist(FString Customization)
 {
-    return *(ParameterRanges.Find(*ParameterName));
+    for (TSharedPtr<FKeywordTableRow>& existingRow : TableRows)
+    {
+        if (existingRow->Customization->Equals(Customization))
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 void SCustomizationTable::OnSliderValueChanged(float NewValue, TSharedPtr<FKeywordTableRow> RowData)
 {
-    RowData->Value = MakeShared<FString>(FString::SanitizeFloat(NewValue));
-    RowData->AttachedTextBox->SetText(FText::FromString(*(RowData->Value)));
+    if (RowData->ValueType->Equals("int"))
+    {
+        int32 IntValue = FMath::FloorToInt32(NewValue);
+        RowData->Value = MakeShared<FString>(FString::FromInt(IntValue));
+        RowData->AttachedTextBox->SetText(FText::FromString(*(RowData->Value)));
+    }
+    else 
+    {
+        RowData->Value = MakeShared<FString>(FString::SanitizeFloat(NewValue));
+        RowData->AttachedTextBox->SetText(FText::FromString(*(RowData->Value)));
+    }
+    
 }
 
 void SCustomizationTable::OnValueTextCommitted(const FText& NewText, const ETextCommit::Type InTextAction, TSharedPtr<FKeywordTableRow> RowData)

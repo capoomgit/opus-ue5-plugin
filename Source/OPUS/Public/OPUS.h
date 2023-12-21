@@ -36,7 +36,7 @@ public:
 private:
 	// Application
 	void RegisterMenus();
-	void CreateWindow();
+	void CreatePluginWindow();
 
 	// Screens
 	void ShowScreen(OPUSScreenState screen);
