@@ -13,8 +13,6 @@
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "PackageTools.h"
 
-#include "7zpp.h"
-
 #define LOCTEXT_NAMESPACE "FOPUSModule"
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SQueueScreen::Construct(const FArguments& InArgs)
@@ -414,12 +412,33 @@ void SQueueScreen::DownloadAndUnzipMethod(const FString& URL, const FString& Dat
 
 bool SQueueScreen::ExtractWith7Zip(const FString& ZipFile, const FString& DestinationDirectory)
 {
+
+    //// Get the path to 7za.exe within the plugin's Binaries directory.
+    FString PluginDir = FPaths::Combine(FPaths::ProjectPluginsDir(), TEXT("OPUS"));
+    if (!FPaths::DirectoryExists(PluginDir)) 
+    {
+        PluginDir = FPaths::Combine(FPaths::EnginePluginsDir(), TEXT("OPUS"));
+    }
+    FString SevenZipExecutable = FPaths::Combine(PluginDir, TEXT("Binaries"), TEXT("7za.exe"));
+
+    FString CommandArgs = FString::Printf(TEXT("e \"%s\" -o\"%s\" -y"), *ZipFile, *DestinationDirectory);
+
+    FProcHandle Handle = FPlatformProcess::CreateProc(*SevenZipExecutable, *CommandArgs, true, false, false, nullptr, 0, nullptr, nullptr);
+    if (Handle.IsValid())
+    {
+        FPlatformProcess::WaitForProc(Handle);
+        return true;
+    }
+    return false;
+
+    /*
 #if defined(_WIN64)
 
     FString PlatformString = FString(TEXT("Win64"));
 #else
     FString PlatformString = FString(TEXT("Win32"));
 #endif
+    
     SevenZip::SevenZipLibrary lib;
     FString DLLString = FString("7z.dll");
     FString LibraryPath = FPaths::ConvertRelativePathToFull(FPaths::Combine(FPaths::ProjectPluginsDir(), TEXT("OPUS/ThirdParty/7zpp/dll"), *PlatformString));
@@ -451,26 +470,10 @@ bool SQueueScreen::ExtractWith7Zip(const FString& ZipFile, const FString& Destin
     SevenZip::ProgressCallback* ExtractCallbackFunc = nullptr;
 
     Extractor.ExtractArchive(*DestinationDirectory, ExtractCallbackFunc);
-
+    */
     return true;
 
-    //// Get the path to 7za.exe within the plugin's Binaries directory.
-    //FString PluginDir = FPaths::Combine(FPaths::ProjectPluginsDir(), TEXT("OPUS"));
-    //if (!FPaths::DirectoryExists(PluginDir)) 
-    //{
-    //    PluginDir = FPaths::Combine(FPaths::EnginePluginsDir(), TEXT("OPUS"));
-    //}
-    //FString SevenZipExecutable = FPaths::Combine(PluginDir, TEXT("Binaries"), TEXT("7za.exe"));
-
-    //FString CommandArgs = FString::Printf(TEXT("e \"%s\" -o\"%s\" -y"), *ZipFile, *DestinationDirectory);
-
-    //FProcHandle Handle = FPlatformProcess::CreateProc(*SevenZipExecutable, *CommandArgs, true, false, false, nullptr, 0, nullptr, nullptr);
-    //if (Handle.IsValid())
-    //{
-    //    FPlatformProcess::WaitForProc(Handle);
-    //    return true;
-    //}
-    //return false;
+    
 }
 
 void SQueueScreen::ZipProgressCallback() 

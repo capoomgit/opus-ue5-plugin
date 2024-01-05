@@ -3,13 +3,13 @@
 	"Version": 1,
 	"VersionName": "1.0",
 	"FriendlyName": "OPUS",
-	"Description": "Create 3D models using OPUS",
+	"Description": "Generate 3D assets",
 	"Category": "Other",
 	"CreatedBy": "Capoom",
-	"CreatedByURL": "https://www.capoom.com/",
-	"DocsURL": "https://github.com/capoomgit/opus-ue5-plugin",
+	"CreatedByURL": "",
+	"DocsURL": "",
 	"MarketplaceURL": "",
-	"SupportURL": "https://github.com/capoomgit/opus-ue5-plugin",
+	"SupportURL": "",
 	"CanContainContent": false,
 	"IsBetaVersion": false,
 	"IsExperimentalVersion": false,
@@ -18,10 +18,7 @@
 		{
 			"Name": "OPUS",
 			"Type": "Editor",
-			"LoadingPhase": "Default",
-			"PlatformAllowList": [
-				"Win64"
-			]
+			"LoadingPhase": "Default"
 		}
 	]
 }

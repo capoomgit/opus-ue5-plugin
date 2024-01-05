@@ -6,7 +6,6 @@
 #include "Widgets/SCompoundWidget.h"
 #include "Http.h"
 #include "EditorNotificationHelper.h"
-#include "7zpp.h"
 
 DECLARE_MULTICAST_DELEGATE(FOnCreationScreenEnabled);
 
@@ -78,7 +77,6 @@ private:
 	FString SecondAPILink;
 	bool IsQueueLoopEnabled = false;
 
-	SevenZip::ProgressCallback* UnzipProgressCallback;
 	TArray<TSharedPtr<FString>> AvailableFileTypes;
 	EditorNotificationHelper NotificationHelper;
 };

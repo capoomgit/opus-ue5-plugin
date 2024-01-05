@@ -860,10 +860,10 @@ void SCreationScreen::SendAPIRequest_Create()
 {
     // Disable create button
     CreateButton->SetEnabled(false);
-    FString Url = URLHelper::CreateBatchComponent;
+    FString Url = URLHelper::CreateComponent;
     // When you want to create more objects using create batch
-    FString Parameters = "?count=1";
-    Url += Parameters;
+    //FString Parameters = "?count=1";
+    //Url += Parameters;
 
     for (const auto& structure : Structures)
     {
@@ -987,7 +987,7 @@ void SCreationScreen::SendAPIRequest_AttributeName()
 
 void SCreationScreen::OnAPIRequestAttributeNameCompleted(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
 {
-    UE_LOG(LogTemp, Warning, TEXT("Inside OnThirdAPIRequestAttributeNameCompleted. bWasSuccessful: %s, Response Code: %d"), bWasSuccessful ? TEXT("True") : TEXT("False"), Response.IsValid() ? Response->GetResponseCode() : -1);
+    UE_LOG(LogTemp, Warning, TEXT("Inside OnAPIRequestAttributeNameCompleted. bWasSuccessful: %s, Response Code: %d"), bWasSuccessful ? TEXT("True") : TEXT("False"), Response.IsValid() ? Response->GetResponseCode() : -1);
 
     if (bWasSuccessful && Response.IsValid() && EHttpResponseCodes::IsOk(Response->GetResponseCode()))
     {
@@ -1169,6 +1169,11 @@ void SCreationScreen::OnAPIRequestAttributeNameCompleted(FHttpRequestPtr Request
                 }
             }
         }
+    }
+    else
+    {
+        ShowConnectionErrorWarning();
+        UE_LOG(LogTemp, Error, TEXT("API request was not successful. Response code: %d, Error: %s"), Response->GetResponseCode(), *Response->GetContentAsString());
     }
 
     // Give feedback
