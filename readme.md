@@ -17,18 +17,15 @@ OPUS is a powerful tool that utilizes procedural modeling techniques to generate
 
 1. Download the latest .zip file of [OPUS Unreal Plugin](https://github.com/capoomgit/opus-ue5-plugin/releases)
 2. Extract the .zip file
-3. Find the folder containing your Unreal Plugins. The default location is:
-    C:\Program Files\Epic Games\UE_[version]\Engine\Plugins on Windows
-    /Users/Shared/Epic Games/UE_[version]/Engine/Plugins on macOS
-4. Copy the “OPUS” folder inside the extracted folder and paste it into “Plugins”
+3. Find the folder containing your Unreal Project. The default location is:
+    C:\Program Files\Documents\Unreal Projects\[Your Project Name]
+4. Create a folder called "Plugins" and copy the “OPUS” folder inside it
 5. Open up your Unreal Project. Restart it if it was already open
-6. Go to Edit->Plugins to see all available plugins
-7. Type “OPUS” in the search bar at the top of the Plugins window
-8. Enable the plugin by clicking the checkbox next to it.
-![Plugin activation](/ReadmeAssets/UnrealActivatePlugin.png "Plugin activation")
-9. Restart Unreal Engine
-10. When you open it up you should see a new button on your Viewport Taskbar, or you can go to Window->OPUS to open up your OPUS window
+6. Go to Window->OPUS or press the OPUS button on your level editor to pull up OPUS window
 ![OPUS Plugin Button](/ReadmeAssets/UnrealPluginButton.png "OPUS plugin button")
+7. Now you will need a Rapid API key to log in. Create an account at: https://rapidapi.com/
+8. Get your Rapid API key for OPUS from: https://rapidapi.com/genel-gi78OM1rB/api/opus5
+![Rapid API Key](/ReadmeAssets/RapidAPIKey.png "Rapid API Key")
 
 
 ## Features
