@@ -23,8 +23,8 @@ OPUS is a powerful tool that utilizes procedural modeling techniques to generate
 5. Open up your Unreal Project. Restart it if it was already open
 6. Go to Window->OPUS or press the OPUS button on your level editor to pull up OPUS window
 ![OPUS Plugin Button](/ReadmeAssets/UnrealPluginButton.png "OPUS plugin button")
-7. Now you will need a Rapid API key to log in. Create an account at: https://rapidapi.com/
-8. Get your Rapid API key for OPUS from: https://rapidapi.com/genel-gi78OM1rB/api/opus5
+7. Now you will need a Rapid API key to log in. Create an account at: [RapidAPI](https://rapidapi.com/)
+8. Get your Rapid API key for OPUS from: [OPUS API](https://rapidapi.com/genel-gi78OM1rB/api/opus5)
 ![Rapid API Key](/ReadmeAssets/RapidAPIKey.png "Rapid API Key")
 
 
