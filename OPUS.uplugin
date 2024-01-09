@@ -6,10 +6,10 @@
 	"Description": "Generate 3D assets",
 	"Category": "Other",
 	"CreatedBy": "Capoom",
-	"CreatedByURL": "",
-	"DocsURL": "",
-	"MarketplaceURL": "",
-	"SupportURL": "",
+	"CreatedByURL": "https://www.capoom.com/",
+	"DocsURL": "https://github.com/capoomgit/opus-ue5-plugin",
+	"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/product/28d8688b70e74b2e8ece10a82e934f71",
+	"SupportURL": "https://github.com/capoomgit/opus-ue5-plugin/issues",
 	"CanContainContent": false,
 	"IsBetaVersion": false,
 	"IsExperimentalVersion": false,
@@ -18,7 +18,10 @@
 		{
 			"Name": "OPUS",
 			"Type": "Editor",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "Default",
+			"WhitelistPlatforms": [
+				"Win64"
+			]
 		}
 	]
 }

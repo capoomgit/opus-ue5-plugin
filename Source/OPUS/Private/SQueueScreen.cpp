@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Copyright Capoom Inc. All Rights Reserved.
 
 
 #include "SQueueScreen.h"
@@ -12,6 +12,9 @@
 #include "Factories/FbxFactory.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "PackageTools.h"
+
+//#include <bitfileextractor.hpp>
+
 
 #define LOCTEXT_NAMESPACE "FOPUSModule"
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -325,6 +328,8 @@ void SQueueScreen::DownloadAndUnzipMethod(const FString& URL, const FString& Dat
     //TODO: this section must be revised to a proper try-catch structure
     HttpRequest->OnProcessRequestComplete().BindLambda([this, DateTime, JobName](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
         {
+#pragma push_macro("CreateDirectory")
+#undef CreateDirectory
             if (bWasSuccessful && Response.IsValid())
             {
                 // Create a "ZippedContents" folder if it does not exist
@@ -382,6 +387,7 @@ void SQueueScreen::DownloadAndUnzipMethod(const FString& URL, const FString& Dat
                         {
                             FPlatformFileManager::Get().GetPlatformFile().CreateDirectory(*DestinationSubFolder);
                         }
+#pragma pop_macro("CreateDirectory")
 
                         // Copy the unzipped files to the OPUS sub-directory
                         FPlatformFileManager::Get().GetPlatformFile().CopyDirectoryTree(*DestinationSubFolder, *UnzipDirectory, true);
@@ -412,14 +418,34 @@ void SQueueScreen::DownloadAndUnzipMethod(const FString& URL, const FString& Dat
 
 bool SQueueScreen::ExtractWith7Zip(const FString& ZipFile, const FString& DestinationDirectory)
 {
+    /*
+    try { // bit7z classes can throw BitException objects
+        using namespace bit7z;
+        FString DLLPath = FPaths::Combine(FPaths::ProjectPluginsDir(), "OPUS/Source/ThirdParty/bit7z/dll/7za.dll");
+        DLLPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*DLLPath);
+        tstring DLLFilePath = tstring(TCHAR_TO_UTF8(*DLLPath));
+        Bit7zLibrary lib{ DLLFilePath };
+        BitFileExtractor extractor{ lib, BitFormat::Zip };
 
-    //// Get the path to 7za.exe within the plugin's Binaries directory.
+        tstring ZipFilePath = tstring(TCHAR_TO_UTF8(*ZipFile));
+        tstring DestinationFilePath = tstring(TCHAR_TO_UTF8(*ZipFile));
+        // Extracting a simple archive
+        extractor.extract(ZipFilePath, DestinationFilePath);
+
+    }
+    catch (const bit7z::BitException& ex) 
+    {
+        UE_LOG(LogTemp, Error, TEXT("Error extracting zip file: % s"), ex.what())
+    }
+    */
+    
+    // Get the path to 7za.exe within the plugin's Binaries directory.
     FString PluginDir = FPaths::Combine(FPaths::ProjectPluginsDir(), TEXT("OPUS"));
     if (!FPaths::DirectoryExists(PluginDir)) 
     {
         PluginDir = FPaths::Combine(FPaths::EnginePluginsDir(), TEXT("OPUS"));
     }
-    FString SevenZipExecutable = FPaths::Combine(PluginDir, TEXT("Binaries"), TEXT("7za.exe"));
+    FString SevenZipExecutable = FPaths::Combine(PluginDir,TEXT("Source"), TEXT("ThirdParty"), TEXT("7za.exe"));
 
     FString CommandArgs = FString::Printf(TEXT("e \"%s\" -o\"%s\" -y"), *ZipFile, *DestinationDirectory);
 
@@ -470,9 +496,9 @@ bool SQueueScreen::ExtractWith7Zip(const FString& ZipFile, const FString& Destin
     SevenZip::ProgressCallback* ExtractCallbackFunc = nullptr;
 
     Extractor.ExtractArchive(*DestinationDirectory, ExtractCallbackFunc);
-    */
+    
     return true;
-
+    */
     
 }
 

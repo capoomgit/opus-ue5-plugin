@@ -1,3 +1,5 @@
+// Copyright Capoom Inc. All Rights Reserved.
+
 #pragma once
 
 #include "CoreMinimal.h"

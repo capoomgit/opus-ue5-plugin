@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Copyright Capoom Inc. All Rights Reserved.
 
 #include "OPUS.h"
 #include "OPUSStyle.h"
