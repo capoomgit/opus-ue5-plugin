@@ -7,6 +7,8 @@
 #include "Widgets/Input/SSlider.h"
 #include "Misc/DefaultValueHelper.h"
 
+#include "string"
+
 #define LOCTEXT_NAMESPACE "FOPUSModule"
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SCustomizationTable::Construct(const FArguments& InArgs)
@@ -233,7 +235,8 @@ void SCustomizationTable::OnSliderValueChanged(float NewValue, TSharedPtr<FKeywo
 void SCustomizationTable::OnValueTextCommitted(const FText& NewText, const ETextCommit::Type InTextAction, TSharedPtr<FKeywordTableRow> RowData)
 {
     FString ParamInputContent = NewText.ToString();
-    float InputValue;
+    float InputValueFloat;
+    int32 InputValueInt;
 
     // Handle input starting with decimal point, make ".2" into "0.2"
     if (ParamInputContent.StartsWith("."))
@@ -244,19 +247,46 @@ void SCustomizationTable::OnValueTextCommitted(const FText& NewText, const EText
     }
 
     // Parse Input
-    if (FDefaultValueHelper::ParseFloat(ParamInputContent, InputValue))
+    if (FDefaultValueHelper::ParseFloat(ParamInputContent, InputValueFloat))
     {
-        if (InputValue >= RowData->ParameterRange.X && InputValue <= RowData->ParameterRange.Y)
+        if (InputValueFloat < RowData->ParameterRange.X)
         {
-            //RowData->Value = MakeShared<FString>(FString::SanitizeFloat(InputValue));
-            RowData->AttachedSlider->SetValue(InputValue);
-            RowData->Value = MakeShared<FString>(FString::SanitizeFloat(InputValue));
+            InputValueFloat = RowData->ParameterRange.X;
+        }
+
+        else if (InputValueFloat > RowData->ParameterRange.Y)
+        {
+            InputValueFloat = RowData->ParameterRange.Y;
+        }
+
+        if (RowData->ValueType->Equals("int"))
+        {
+            InputValueInt = FMath::FloorToInt32(InputValueFloat);
+            RowData->Value = MakeShared<FString>(FString::FromInt(InputValueFloat));
+            RowData->AttachedSlider->SetValue(InputValueInt);
+        }
+
+        else 
+        {
+            RowData->AttachedSlider->SetValue(InputValueFloat);
+            RowData->Value = MakeShared<FString>(FString::SanitizeFloat(InputValueFloat));
         }
     }
+
+    // handle non number inputs
     else 
     {
-        RowData->AttachedSlider->SetValue(RowData->ParameterRange.X);
-        RowData->Value = MakeShared<FString>(FString::SanitizeFloat(RowData->ParameterRange.X));
+        if (RowData->ValueType->Equals("int")) 
+        {
+            InputValueInt = FMath::FloorToInt32(RowData->ParameterRange.X);
+            RowData->AttachedSlider->SetValue(InputValueInt);
+            RowData->Value = MakeShared<FString>(FString::FromInt(InputValueInt));
+        }
+        else 
+        {
+            RowData->AttachedSlider->SetValue(RowData->ParameterRange.X);
+            RowData->Value = MakeShared<FString>(FString::SanitizeFloat(RowData->ParameterRange.X));
+        }
     }
 
     // Set cleaned text

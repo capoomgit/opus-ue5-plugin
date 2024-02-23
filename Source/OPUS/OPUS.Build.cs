@@ -10,24 +10,29 @@ public class OPUS : ModuleRules
     {
         get { return Path.GetFullPath(Path.Combine(ModuleDirectory, "../ThirdParty/")); }
     }
-	/*
-    private string SevenZipPath
+	
+    private string LibZipPath
     {
-        get { return Path.GetFullPath(Path.Combine(ThirdPartyPath, "bit7z")); }
+        get { return Path.GetFullPath(Path.Combine(ThirdPartyPath, "libzipp/Debug")); }
     }
-	private string SevenZipIncludePath
+	private string LibZipIncludePath
 	{
-        get { return Path.GetFullPath(Path.Combine(SevenZipPath, "include/bit7z")); }
+        get { return Path.GetFullPath(Path.Combine(LibZipPath, "include")); }
     }
-    private string SevenZipLibraryPath
+    private string LibZipLibraryPath
     {
-        get { return Path.GetFullPath(Path.Combine(SevenZipPath, "lib/x64/Release/bit7z.lib")); }
+        get { return Path.GetFullPath(Path.Combine(LibZipPath, "lib/libzippp.lib")); }
     }
-    private string SevenZipDLLPath
+    private string LibZipDLLPath
     {
-        get { return Path.GetFullPath(Path.Combine(SevenZipPath, "dll/7za.dll")); }
+        get { return Path.GetFullPath(Path.Combine(ThirdPartyPath, "dll/libzippp.dll")); }
     }
-	*/
+
+	private string MinizPath
+	{
+		get { return Path.GetFullPath(Path.Combine(ThirdPartyPath, "miniz-3.0.2")); }
+	}
+
     public OPUS(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
@@ -45,7 +50,8 @@ public class OPUS : ModuleRules
 			new string[] {
 				// ... add other private include paths required here ...
                 Path.Combine(ModuleDirectory, "Private"),
-				//SevenZipIncludePath
+				//LibZipIncludePath
+				//MinizPath
 
             }
 			);
@@ -55,6 +61,7 @@ public class OPUS : ModuleRules
 			new string[]
 			{
 				"Core",
+				"FileUtilities",
 				"HTTP",
 				"Json"
 				// ... add other public dependencies that you statically link with here ...
@@ -86,10 +93,10 @@ public class OPUS : ModuleRules
 				// ... add any modules that your module loads dynamically here ...
 			}
 			);
-		/*
-        PublicAdditionalLibraries.Add(SevenZipLibraryPath);
-        PublicDelayLoadDLLs.Add("7za.dll");
-        RuntimeDependencies.Add(SevenZipDLLPath);
-		*/
+		
+        //PublicAdditionalLibraries.Add(CapoomUnzipDLL);
+        //PublicDelayLoadDLLs.Add("unzip_library.dll");
+        //RuntimeDependencies.Add(CapoomUnzipDLL);
+		
     }
 }

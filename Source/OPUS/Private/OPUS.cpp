@@ -240,6 +240,7 @@ void FOPUSModule::CleanUp()
 	if (QueueScreen != nullptr)
 	{
 		QueueScreen->SetQueueLoopEnabled(false);
+		QueueScreen->FreeUnzipDLL();
 	}
 }
 

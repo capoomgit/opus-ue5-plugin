@@ -12,9 +12,14 @@
 #include "Factories/FbxFactory.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "PackageTools.h"
+//#include "FileUtilities/ZipArchiveReader.h"
+//#include "miniz.h"
 
-//#include <bitfileextractor.hpp>
+//#include "libzippp.h"
 
+typedef int32(*_unzip)(const char* ArchivePath, const char* DestinationPath); // Declare a method to store the DLL method getInvertedBool.
+
+_unzip m_getUnzipFromDLL;
 
 #define LOCTEXT_NAMESPACE "FOPUSModule"
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -23,6 +28,7 @@ void SQueueScreen::Construct(const FArguments& InArgs)
     // Store API key
     APIKey = InArgs._APIKey;
     SetUpFileTypes();
+    LoadUnzipDLL();
 
 	ChildSlot
 	[
@@ -363,6 +369,7 @@ void SQueueScreen::DownloadAndUnzipMethod(const FString& URL, const FString& Dat
                     }
                     FPlatformFileManager::Get().GetPlatformFile().CreateDirectory(*UnzipDirectory);
 
+
                     // Call the 7-Zip extraction function
                     if (ExtractWith7Zip(DownloadedZipFile, UnzipDirectory))
                     {
@@ -416,9 +423,83 @@ void SQueueScreen::DownloadAndUnzipMethod(const FString& URL, const FString& Dat
     HttpRequest->ProcessRequest();
 }
 
+bool SQueueScreen::LoadUnzipDLL()
+{
+    FString DLLPath = FPaths::Combine(FPaths::ProjectPluginsDir(), "OPUS/Source/UnzipDLL/unzip_library.dll");
+
+    UnzipDLLHandle = FPlatformProcess::GetDllHandle(*DLLPath); // Retrieve the DLL.
+    if (UnzipDLLHandle != NULL)
+    {
+        m_getUnzipFromDLL = NULL;
+        FString procName = "extract_zip";    // Needs to be the exact name of the DLL method.
+        m_getUnzipFromDLL = (_unzip)FPlatformProcess::GetDllExport(UnzipDLLHandle, *procName);
+        if (m_getUnzipFromDLL != NULL)
+        {
+            return true;
+        }
+    }
+    UE_LOG(LogTemp, Error, TEXT("Failed unzip DLL load"))
+    return false;
+}
+
+void SQueueScreen::FreeUnzipDLL()
+{
+    m_getUnzipFromDLL = NULL;
+    if (UnzipDLLHandle != NULL)
+    {
+        FPlatformProcess::FreeDllHandle(UnzipDLLHandle);
+    }
+    UnzipDLLHandle = NULL;
+
+}
 bool SQueueScreen::ExtractWith7Zip(const FString& ZipFile, const FString& DestinationDirectory)
 {
+    FString ArchiveFullPath = FPaths::ConvertRelativePathToFull(ZipFile);
+    FString DestinationFullPath = FPaths::ConvertRelativePathToFull(DestinationDirectory);
+
+
+    std::string arch = std::string(TCHAR_TO_UTF8(*ArchiveFullPath));
+    std::string dest = std::string(TCHAR_TO_UTF8(*DestinationFullPath));
+    m_getUnzipFromDLL(arch.c_str(), dest.c_str());
+    return true;
     /*
+    // Creating Miniz archiver
+    mz_zip_archive*  MinizArchiver = static_cast<mz_zip_archive*>(FMemory::Memzero(FMemory::Malloc(sizeof(mz_zip_archive)), sizeof(mz_zip_archive)));
+
+    if (!MinizArchiver)
+    {
+        //ReportError(ERuntimeArchiverErrorCode::NotInitialized, TEXT("Unable to allocate memory for zip archiver"));
+        return false;
+    }
+
+    UE_LOG(LogTemp, Log, TEXT("Successfully initialized zip archiver '%s'"), *ArchivePath);
+
+    if (!mz_zip_reader_init_file(static_cast<mz_zip_archive*>(MinizArchiver), TCHAR_TO_UTF8(*ArchivePath), 0))
+    {
+        UE_LOG(LogTemp, Log, TEXT("Error reading file: '%s'"), *ArchivePath);
+        return false;
+    }
+
+    //FZipArchiveReader();
+    
+    std::string ZipFileString = TCHAR_TO_UTF8(*ZipFile);
+    libzippp::ZipArchive zf(ZipFileString);
+
+    zf.open(libzippp::ZipArchive::ReadOnly);
+    UE_LOG(LogTemp, Error, TEXT("Opened zip file"));
+
+    std::vector<libzippp::ZipEntry> entries = zf.getEntries();
+    std::vector<libzippp::ZipEntry>::iterator it;
+    for (it = entries.begin(); it != entries.end(); ++it) 
+    {
+        libzippp::ZipEntry entry = *it;
+        std::string name = entry.getName();
+        int size = entry.getSize();
+
+        //UE_LOG(LogTemp, Error, TEXT("Reading file: %s, File size: %i"), entry.getName(), size);
+    }
+    return false;
+
     try { // bit7z classes can throw BitException objects
         using namespace bit7z;
         FString DLLPath = FPaths::Combine(FPaths::ProjectPluginsDir(), "OPUS/Source/ThirdParty/bit7z/dll/7za.dll");
@@ -437,7 +518,7 @@ bool SQueueScreen::ExtractWith7Zip(const FString& ZipFile, const FString& Destin
     {
         UE_LOG(LogTemp, Error, TEXT("Error extracting zip file: % s"), ex.what())
     }
-    */
+    
     
     // Get the path to 7za.exe within the plugin's Binaries directory.
     FString PluginDir = FPaths::Combine(FPaths::ProjectPluginsDir(), TEXT("OPUS"));
@@ -456,7 +537,7 @@ bool SQueueScreen::ExtractWith7Zip(const FString& ZipFile, const FString& Destin
         return true;
     }
     return false;
-
+    */
     /*
 #if defined(_WIN64)
 

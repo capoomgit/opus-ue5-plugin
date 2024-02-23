@@ -44,6 +44,7 @@ public:
 	void SetQueueLoopEnabled(bool Enable);
 	void ReadAndParseQueueFile();
 	void QueueLoop();
+	void FreeUnzipDLL();
 
 private:
 	// Queue logic methods
@@ -67,6 +68,7 @@ private:
 
 	// Helper methods
 	void SetUpFileTypes();
+	bool LoadUnzipDLL();
 
 private:
 	TSharedPtr<SListView<TSharedPtr<FQueueRow>>> QueueListView;
@@ -79,4 +81,6 @@ private:
 
 	TArray<TSharedPtr<FString>> AvailableFileTypes;
 	EditorNotificationHelper NotificationHelper;
+
+	void* UnzipDLLHandle;
 };
