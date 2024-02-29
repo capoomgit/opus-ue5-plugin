@@ -59,7 +59,6 @@ void FOPUSModule::PluginButtonClicked()
 {
 	RegisterLoginScreen();
 	CreatePluginWindow();
-
 	ShowScreen(CurrentScreenState);
 }
 
@@ -138,7 +137,7 @@ void FOPUSModule::CreatePluginWindow()
 	{
 		SAssignNew(MainWindow, SWindow)
 			.Title(LOCTEXT("WindowTitle", "OPUS API"))
-			.ClientSize(FVector2D(650, 700))
+			.ClientSize(FVector2D(750, 700))
 			.IsInitiallyMaximized(false);
 
 

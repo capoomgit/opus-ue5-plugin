@@ -94,6 +94,8 @@ private:
 	FText GetCurrentFileType() const;
 	FText GetCurrentTextureSize() const;
 	bool TagExistsInFilteredList(TSharedPtr<FString> TagString);
+	TOptional<int32> GetBatchCount() const;
+	void OnBatchCountChanged(int NewValue);
 
 private:
 	FString APIKey;
@@ -125,6 +127,10 @@ private:
 	TSharedPtr<SComboBox<TSharedPtr<FString>>> TextureSizeComboBox;
 	TArray<TSharedPtr<FString>> AvailableTextureSizes;
 	TSharedPtr<FString> CurrentTextureSize;
+
+	// Batch generation count
+	int32 BatchCount = 1;
+	int32 MaxBatchCount = 100;
 
 	// TABLE RELATED
 	TSharedPtr<SCustomizationTable> CustomizationTable;

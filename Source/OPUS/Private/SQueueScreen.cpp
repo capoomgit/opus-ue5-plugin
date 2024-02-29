@@ -6,12 +6,14 @@
 #include "Misc/FileHelper.h"
 #include "Async/Async.h"
 #include "Serialization/JsonReader.h" 
-#include "Serialization/JsonSerializer.h" 
+#include "Serialization/JsonSerializer.h"
+#include "Misc/DefaultValueHelper.h"
 #include "URLHelper.h"
 #include "Widgets/Layout/SScrollBox.h"
 #include "Factories/FbxFactory.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "PackageTools.h"
+#include "HAL/FileManagerGeneric.h"
 //#include "FileUtilities/ZipArchiveReader.h"
 //#include "miniz.h"
 
@@ -184,16 +186,26 @@ void SQueueScreen::ReadAndParseQueueFile()
                 TArray<FString> tokens;
                 line.ParseIntoArray(tokens, TEXT(" "), true);
 
-                if (tokens.Num() >= 4)  // Ensure there are at least 4 tokens
-                {
-                    FString job = tokens[0];
-                    FString dateTime = tokens[1];
-                    FString status = tokens[2];
-                    FString jobID = tokens[3];
-                    FString downloadLink = (tokens.Num() >= 5) ? tokens[4] : TEXT("");  // Parsing the download link
+                
+                FString job = tokens[0];
+                FString dateTime = tokens[1];
+                FString status = tokens[2];
+                FString jobID = tokens[3];
+                FString BatchCountString = tokens[4];
 
-                    QueueData.Add(MakeShareable(new FQueueRow(job, dateTime, status, jobID, downloadLink)));
+                int32 BatchCount;
+                TArray<FString> DownloadLinks;
+                if (FDefaultValueHelper::ParseInt(BatchCountString, BatchCount))
+                {
+                    for (int32 i = 0; i < BatchCount; i++)
+                    {
+                        DownloadLinks.Add(tokens[5 + i]);
+                    }
                 }
+               
+
+                QueueData.Add(MakeShareable(new FQueueRow(job, dateTime, status, jobID, BatchCount, DownloadLinks)));
+                
             }
 
             // TODO Dont run loop when Queue screen not active
@@ -275,8 +287,13 @@ TSharedRef<ITableRow> SQueueScreen::OnGenerateRowForList(TSharedPtr<FQueueRow> I
                             if (CurrentIndex >= 0 && CurrentIndex < QueueData.Num())
                             {
                                 if (QueueData[CurrentIndex]->Status == TEXT("COMPLETED")) {
-                                    DownloadAndUnzipMethod(QueueData[CurrentIndex]->DownloadLink, QueueData[CurrentIndex]->DateTime, QueueData[CurrentIndex]->Job);
+
                                     NotificationHelper.ShowNotificationSuccess(LOCTEXT("Success", "Downloading component! This might take some time varying the size of the job."));
+
+                                    for (int32 i = 0; i < QueueData[CurrentIndex]->BatchCount; i++)
+                                    {
+                                        DownloadAndUnzipMethod(QueueData[CurrentIndex]->DownloadLinks[i], QueueData[CurrentIndex]->DateTime, QueueData[CurrentIndex]->Job, QueueData[CurrentIndex]->BatchCount);
+                                    }
                                 }
                             }
                             return FReply::Handled();
@@ -312,7 +329,14 @@ void SQueueScreen::WriteQueueToFile()
 
     for (const auto& jobData : QueueData)
     {
-        fileContent += jobData->Job + " " + jobData->DateTime + " " + jobData->Status + " " + jobData->JobID + " " + jobData->DownloadLink + "\n";
+        FString DownloadLinksString;
+        FString BatchCount = FString::FromInt(jobData->BatchCount);
+        for (FString link : jobData->DownloadLinks)
+        {
+            DownloadLinksString += link + " ";
+        }
+
+        fileContent += jobData->Job + " " + jobData->DateTime + " " + jobData->Status + " " + jobData->JobID + " " + BatchCount + " " + DownloadLinksString + +"\n";
     }
 
     // Write to file
@@ -322,21 +346,24 @@ void SQueueScreen::WriteQueueToFile()
 // ------------------------------
 // --- DOWNLOAD&UNZIP METHODS
 // ------------------------------
-
-void SQueueScreen::DownloadAndUnzipMethod(const FString& URL, const FString& DateTime, const FString& JobName)
+// Returns the parent folder with all downloaded files
+void SQueueScreen::DownloadAndUnzipMethod(const FString& URL, const FString& DateTime, const FString& JobName, int32 BatchCount)
 {
     UE_LOG(LogTemp, Warning, TEXT("Initiating download from URL: %s"), *URL);
-
+    FString DownloadedContentDir;
     TSharedRef<IHttpRequest, ESPMode::ThreadSafe> HttpRequest = FHttpModule::Get().CreateRequest();
     HttpRequest->SetVerb("GET");
     HttpRequest->SetURL(URL);
 
     //TODO: this section must be revised to a proper try-catch structure
-    HttpRequest->OnProcessRequestComplete().BindLambda([this, DateTime, JobName](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
+    HttpRequest->OnProcessRequestComplete().BindLambda([this, DateTime, JobName, BatchCount](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
         {
 #pragma push_macro("CreateDirectory")
 #undef CreateDirectory
-            if (bWasSuccessful && Response.IsValid())
+
+            int32 ResponseCode = Response->GetResponseCode();
+
+            if (bWasSuccessful && Response.IsValid() && ResponseCode == 200)
             {
                 // Create a "ZippedContents" folder if it does not exist
                 FString ZippedContentsDir = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("ZippedContents"));
@@ -356,6 +383,7 @@ void SQueueScreen::DownloadAndUnzipMethod(const FString& URL, const FString& Dat
                 // Save the downloaded zip data to the specified path
                 if (FFileHelper::SaveArrayToFile(Response->GetContent(), *DownloadedZipFile))
                 {
+                    
                     UE_LOG(LogTemp, Warning, TEXT("File saved successfully to: %s"), *DownloadedZipFile);
 
                     // Define where you want to unzip the contents
@@ -371,7 +399,7 @@ void SQueueScreen::DownloadAndUnzipMethod(const FString& URL, const FString& Dat
 
 
                     // Call the 7-Zip extraction function
-                    if (ExtractWith7Zip(DownloadedZipFile, UnzipDirectory))
+                    if (ExtractZip(DownloadedZipFile, UnzipDirectory))
                     {
                         UE_LOG(LogTemp, Warning, TEXT("Unzip operation successful"));
 
@@ -388,19 +416,31 @@ void SQueueScreen::DownloadAndUnzipMethod(const FString& URL, const FString& Dat
                         // Extract a name from the downloaded file for the subfolder
                         FString SubFolderName = FPaths::GetBaseFilename(DownloadedZipFile);
                         FString DestinationSubFolder = FPaths::Combine(OPUSContentDirectory, SubFolderName);
+                        FString ObjectSpecificDestinationDir = DestinationSubFolder;
 
                         // Create a subfolder with the extracted name
                         if (!FPaths::DirectoryExists(DestinationSubFolder))
                         {
                             FPlatformFileManager::Get().GetPlatformFile().CreateDirectory(*DestinationSubFolder);
                         }
+
+                        if (BatchCount > 1)
+                        {
+                            TArray<FString> FbxFileNames;
+                            FString FileExtension = "fbx";
+                            FFileManagerGeneric::Get().FindFiles(FbxFileNames, *UnzipDirectory, *FileExtension);
+                            if (FbxFileNames.Num() > 0)
+                            {
+                                FString FileName = FPaths::GetBaseFilename(FbxFileNames[0]);
+                                ObjectSpecificDestinationDir = FPaths::Combine(DestinationSubFolder, FileName);
+                            }
+                        }
 #pragma pop_macro("CreateDirectory")
 
                         // Copy the unzipped files to the OPUS sub-directory
-                        FPlatformFileManager::Get().GetPlatformFile().CopyDirectoryTree(*DestinationSubFolder, *UnzipDirectory, true);
+                        FPlatformFileManager::Get().GetPlatformFile().CopyDirectoryTree(*ObjectSpecificDestinationDir, *UnzipDirectory, true);
 
-                        ImportFBX(DestinationSubFolder);
-
+                        //ImportFBX(DestinationSubFolder);
                         UE_LOG(LogTemp, Warning, TEXT("Files copied to the Content/OPUS/%s directory"), *SubFolderName);
                     }
                     else
@@ -452,74 +492,18 @@ void SQueueScreen::FreeUnzipDLL()
     UnzipDLLHandle = NULL;
 
 }
-bool SQueueScreen::ExtractWith7Zip(const FString& ZipFile, const FString& DestinationDirectory)
+bool SQueueScreen::ExtractZip(const FString& ZipFile, const FString& DestinationDirectory)
 {
     FString ArchiveFullPath = FPaths::ConvertRelativePathToFull(ZipFile);
     FString DestinationFullPath = FPaths::ConvertRelativePathToFull(DestinationDirectory);
-
 
     std::string arch = std::string(TCHAR_TO_UTF8(*ArchiveFullPath));
     std::string dest = std::string(TCHAR_TO_UTF8(*DestinationFullPath));
     m_getUnzipFromDLL(arch.c_str(), dest.c_str());
     return true;
+
+
     /*
-    // Creating Miniz archiver
-    mz_zip_archive*  MinizArchiver = static_cast<mz_zip_archive*>(FMemory::Memzero(FMemory::Malloc(sizeof(mz_zip_archive)), sizeof(mz_zip_archive)));
-
-    if (!MinizArchiver)
-    {
-        //ReportError(ERuntimeArchiverErrorCode::NotInitialized, TEXT("Unable to allocate memory for zip archiver"));
-        return false;
-    }
-
-    UE_LOG(LogTemp, Log, TEXT("Successfully initialized zip archiver '%s'"), *ArchivePath);
-
-    if (!mz_zip_reader_init_file(static_cast<mz_zip_archive*>(MinizArchiver), TCHAR_TO_UTF8(*ArchivePath), 0))
-    {
-        UE_LOG(LogTemp, Log, TEXT("Error reading file: '%s'"), *ArchivePath);
-        return false;
-    }
-
-    //FZipArchiveReader();
-    
-    std::string ZipFileString = TCHAR_TO_UTF8(*ZipFile);
-    libzippp::ZipArchive zf(ZipFileString);
-
-    zf.open(libzippp::ZipArchive::ReadOnly);
-    UE_LOG(LogTemp, Error, TEXT("Opened zip file"));
-
-    std::vector<libzippp::ZipEntry> entries = zf.getEntries();
-    std::vector<libzippp::ZipEntry>::iterator it;
-    for (it = entries.begin(); it != entries.end(); ++it) 
-    {
-        libzippp::ZipEntry entry = *it;
-        std::string name = entry.getName();
-        int size = entry.getSize();
-
-        //UE_LOG(LogTemp, Error, TEXT("Reading file: %s, File size: %i"), entry.getName(), size);
-    }
-    return false;
-
-    try { // bit7z classes can throw BitException objects
-        using namespace bit7z;
-        FString DLLPath = FPaths::Combine(FPaths::ProjectPluginsDir(), "OPUS/Source/ThirdParty/bit7z/dll/7za.dll");
-        DLLPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*DLLPath);
-        tstring DLLFilePath = tstring(TCHAR_TO_UTF8(*DLLPath));
-        Bit7zLibrary lib{ DLLFilePath };
-        BitFileExtractor extractor{ lib, BitFormat::Zip };
-
-        tstring ZipFilePath = tstring(TCHAR_TO_UTF8(*ZipFile));
-        tstring DestinationFilePath = tstring(TCHAR_TO_UTF8(*ZipFile));
-        // Extracting a simple archive
-        extractor.extract(ZipFilePath, DestinationFilePath);
-
-    }
-    catch (const bit7z::BitException& ex) 
-    {
-        UE_LOG(LogTemp, Error, TEXT("Error extracting zip file: % s"), ex.what())
-    }
-    
-    
     // Get the path to 7za.exe within the plugin's Binaries directory.
     FString PluginDir = FPaths::Combine(FPaths::ProjectPluginsDir(), TEXT("OPUS"));
     if (!FPaths::DirectoryExists(PluginDir)) 
@@ -538,54 +522,7 @@ bool SQueueScreen::ExtractWith7Zip(const FString& ZipFile, const FString& Destin
     }
     return false;
     */
-    /*
-#if defined(_WIN64)
-
-    FString PlatformString = FString(TEXT("Win64"));
-#else
-    FString PlatformString = FString(TEXT("Win32"));
-#endif
     
-    SevenZip::SevenZipLibrary lib;
-    FString DLLString = FString("7z.dll");
-    FString LibraryPath = FPaths::ConvertRelativePathToFull(FPaths::Combine(FPaths::ProjectPluginsDir(), TEXT("OPUS/ThirdParty/7zpp/dll"), *PlatformString));
-    if(!FPaths::DirectoryExists(LibraryPath))
-    {
-        LibraryPath = FPaths::ConvertRelativePathToFull(FPaths::Combine(FPaths::EnginePluginsDir(), TEXT("OPUS/ThirdParty/7zpp/dll"), *PlatformString));
-    }
-
-    LibraryPath = FPaths::Combine(*LibraryPath, *DLLString);
-
-    UE_LOG(LogTemp, Error, TEXT("Loading 7Zip library from:  %s"), *LibraryPath);
-    lib.Load(*LibraryPath);
-
-    SevenZip::SevenZipExtractor Extractor(lib, *ZipFile);
-    TSharedPtr<SevenZip::SevenZipExtractor> ExtractroPtr = MakeShared<SevenZip::SevenZipExtractor>(Extractor);
-    if (!ExtractroPtr.IsValid())
-    {
-        UE_LOG(LogTemp, Error, TEXT("Couldn't create extractor!"));
-        return false;
-    }
-    
-    // Try to detect compression type
-    if (!Extractor.DetectCompressionFormat())
-    {
-        Extractor.SetCompressionFormat(SevenZip::CompressionFormat::Zip);
-    }
-
-    // Change this function to suit
-    SevenZip::ProgressCallback* ExtractCallbackFunc = nullptr;
-
-    Extractor.ExtractArchive(*DestinationDirectory, ExtractCallbackFunc);
-    
-    return true;
-    */
-    
-}
-
-void SQueueScreen::ZipProgressCallback() 
-{
-
 }
 
 void SQueueScreen::ImportFBX(const FString& ContentDirectoryPath)
@@ -640,8 +577,10 @@ void SQueueScreen::ImportFBX(const FString& ContentDirectoryPath)
 
         // Import settings
         bool bImportCancelled = false;
+
         ImportedObject = FbxFactory->ImportObject(UStaticMesh::StaticClass(),
-            ModelPackage, FName(*FbxFileName),
+            ModelPackage, 
+            FName(*FbxFileName),
             EObjectFlags::RF_Standalone | EObjectFlags::RF_Public,
             FbxFilePath,
             nullptr,
@@ -769,10 +708,9 @@ void SQueueScreen::SendSecondAPIRequest_JobResult(FString jobID)
 
 void SQueueScreen::OnSecondAPIRequestJobResultCompleted(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful, FString jobID)
 {
-    //TODO: this section must be revised to a proper try-catch structure
-    if (bWasSuccessful && Response.IsValid())
+    int32 ResponseCode = Response->GetResponseCode();
+    if (bWasSuccessful && Response.IsValid() && ResponseCode == 200)
     {
-        int32 ResponseCode = Response->GetResponseCode();
         FString ResponseStr = Response->GetContentAsString();
 
         TSharedPtr<FJsonObject> JsonObject;
@@ -804,39 +742,42 @@ void SQueueScreen::OnSecondAPIRequestJobResultCompleted(FHttpRequestPtr Request,
                     TArray<TSharedPtr<FJsonValue>> ResultsArray = JsonObject->GetArrayField("results");
                     if (ResultsArray.IsValidIndex(0))
                     {
-                        TSharedPtr<FJsonValue> Result = ResultsArray[0];
-                        TSharedPtr<FJsonObject> urlsObject = Result->AsObject()->GetObjectField("urls");
-                        if (urlsObject.IsValid())
+                        for (int32 i = 0; i < ResultsArray.Num(); i++) 
                         {
-
-                            for (TSharedPtr<FString> CurrentFileType : AvailableFileTypes)
+                            TSharedPtr<FJsonValue> Result = ResultsArray[i];
+                            TSharedPtr<FJsonObject> urlsObject = Result->AsObject()->GetObjectField("urls");
+                            if (urlsObject.IsValid())
                             {
-                                FString link;
 
-                                if (urlsObject->TryGetStringField(*CurrentFileType, link))
+                                for (TSharedPtr<FString> CurrentFileType : AvailableFileTypes)
                                 {
-                                    SecondAPILink = link;
-                                    UE_LOG(LogTemp, Warning, TEXT("API link: %s for file type %s"), *SecondAPILink, **CurrentFileType);
+                                    FString link;
 
-                                    for (auto& jobData : QueueData)
+                                    if (urlsObject->TryGetStringField(*CurrentFileType, link))
                                     {
-                                        if (jobData->JobID == jobID)
-                                        {
-                                            jobData->DownloadLink = link;
-                                            break;
-                                        }
-                                    }
+                                        SecondAPILink = link;
+                                        UE_LOG(LogTemp, Warning, TEXT("API link: %s for file type %s"), *SecondAPILink, **CurrentFileType);
 
-                                    WriteQueueToFile();
-                                    QueueListView->RequestListRefresh();
-                                    // just gets link for one file type
-                                    break;
+                                        for (auto& jobData : QueueData)
+                                        {
+                                            if (jobData->JobID == jobID)
+                                            {
+                                                jobData->DownloadLinks[i] = link;
+                                                break;
+                                            }
+                                        }
+
+                                        WriteQueueToFile();
+                                        QueueListView->RequestListRefresh();
+                                        // just gets link for one file type
+                                        break;
+                                    }
                                 }
                             }
-                        }
-                        else
-                        {
-                            UE_LOG(LogTemp, Warning, TEXT("Urls object is not valid"));
+                            else
+                            {
+                                UE_LOG(LogTemp, Warning, TEXT("Urls object is not valid"));
+                            }
                         }
                     }
                 }

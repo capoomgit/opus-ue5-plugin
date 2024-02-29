@@ -11,6 +11,7 @@
 // Libraries
 #include "Misc/FileHelper.h"
 #include "Widgets/Layout/SScrollBox.h"
+#include "Widgets/Input/SNumericEntryBox.h"
 #include "Http.h"
 #include "Async/Async.h"
 #include "Misc/DefaultValueHelper.h"
@@ -140,7 +141,7 @@ void SCreationScreen::Construct(const FArguments& InArgs)
 
                         + SVerticalBox::Slot()
                         .AutoHeight()
-                        .Padding(0, 20, 0, 0)
+                        .Padding(0, 5, 0, 0)
                         [
                             SNew(STextBlock)
                             .Text(LOCTEXT("Texture Size", "Texture size"))
@@ -159,13 +160,30 @@ void SCreationScreen::Construct(const FArguments& InArgs)
                                 .Text(this, &SCreationScreen::GetCurrentTextureSize)
                             ]
                         ]
+
+                        + SVerticalBox::Slot()
+                        .AutoHeight()
+                        .Padding(0, 5, 0, 0)
+                        [
+                            SNew(STextBlock)
+                                .Text(LOCTEXT("Batch generation count", "Batch count"))
+                        ]
+
+                        + SVerticalBox::Slot()
+                        .AutoHeight()
+                        [
+                            SNew(SNumericEntryBox<int32>)
+                            .Value(this, &SCreationScreen::GetBatchCount)
+                            .OnValueChanged(this, &SCreationScreen::OnBatchCountChanged)
+                            .Delta(1)
+                        ]
                     ]
                     + SHorizontalBox::Slot()
                     .AutoWidth()
-                    .Padding(60, 0, 0, 0)
+                    .Padding(300, 0, 0, 0)
                     [
                         SNew(SBox)
-                        .WidthOverride(135)
+                        .WidthOverride(160)
                         .HeightOverride(100)
                         [
                             SNew(SImage)
@@ -335,6 +353,17 @@ FReply SCreationScreen::CreateButtonClicked()
     return FReply::Handled();
 }
 
+TOptional<int32> SCreationScreen::GetBatchCount() const
+{
+    return BatchCount;
+}
+
+void SCreationScreen::OnBatchCountChanged(int NewValue)
+{
+    if (NewValue > 0 && NewValue <= MaxBatchCount) BatchCount = NewValue;
+    else if (NewValue <= 0) BatchCount = 1;
+    else if (NewValue > MaxBatchCount) BatchCount = MaxBatchCount;
+}   
 
 // ------------------------------
 // --- COMBO BOX METHODS
@@ -782,6 +811,7 @@ FString SCreationScreen::ConstructCreateRequestBody()
     // Start constructing the JSON data
     FString JsonData = "{\r\n";
     JsonData += "    \"name\": \"" + *CurrentModel + "\",\r\n";
+    JsonData += "    \"count\": \"" + FString::FromInt(BatchCount) + "\",\r\n";
     JsonData += "    \"texture_resolution\": \"" + *CurrentTextureSize + "\",\r\n";
     JsonData += "    \"extensions\": [\r\n        \"" + *CurrentFileType + "\"\r\n    ],\r\n";
 
@@ -860,9 +890,9 @@ void SCreationScreen::SendAPIRequest_Create()
 {
     // Disable create button
     CreateButton->SetEnabled(false);
-    FString Url = URLHelper::CreateComponent;
+    FString Url = URLHelper::CreateBatchComponent;
     // When you want to create more objects using create batch
-    //FString Parameters = "?count=1";
+    //FString Parameters = "?count=" + FString::FromInt(BatchCount);
     //Url += Parameters;
 
     for (const auto& structure : Structures)
@@ -931,9 +961,13 @@ void SCreationScreen::OnAPIRequestCreateCompleted(FHttpRequestPtr Request, FHttp
                 FString SaveDirectory = FPaths::ProjectSavedDir();
                 FString FileName = FString(TEXT("queue.txt"));
                 FString AbsolutePath = SaveDirectory + "/" + FileName;
-
                 FString CurrentDateTime = FDateTime::Now().ToString(TEXT("%Y-%m-%d-%H-%M-%S"));
-                FString TextToSave = *CurrentModel + TEXT(" ") + CurrentDateTime + TEXT(" ") + status + TEXT(" ") + *APIResponseID;
+                FString LinkPlaceholderString;
+                for (int32 i = 0; i < BatchCount; i++) 
+                {
+                    LinkPlaceholderString += "link" + FString::FromInt(i) + " ";
+                }
+                FString TextToSave = *CurrentModel + TEXT(" ") + CurrentDateTime + TEXT(" ") + status + TEXT(" ") + *APIResponseID + TEXT(" ") + FString::FromInt(BatchCount) + TEXT(" ") + LinkPlaceholderString;
 
                 // Append to file. This will create the file if it doesn't exist.
                 FFileHelper::SaveStringToFile(TextToSave + LINE_TERMINATOR, *AbsolutePath, FFileHelper::EEncodingOptions::AutoDetect, &IFileManager::Get(), EFileWrite::FILEWRITE_Append);
@@ -970,6 +1004,8 @@ void SCreationScreen::OnAPIRequestCreateCompleted(FHttpRequestPtr Request, FHttp
         }
     }
 }
+
+
 
 void SCreationScreen::SendAPIRequest_AttributeName()
 {

@@ -19,8 +19,8 @@ void SCustomizationTable::Construct(const FArguments& InArgs)
             + SScrollBox::Slot()
             [
                 SNew(SBox)
-                    .WidthOverride(500) // Adjust this based on your needs
-                    .HeightOverride(200) // Adjust this based on your needs
+                    //.WidthOverride(600) // Adjust this based on your needs
+                    //.HeightOverride(200) // Adjust this based on your needs
                     [
                         SNew(SBorder)
                             .BorderImage(FCoreStyle::Get().GetBrush("GenericWhiteBox"))
@@ -55,6 +55,7 @@ TSharedRef<ITableRow> SCustomizationTable::GenerateTableRow(TSharedPtr<FKeywordT
         SNew(STableRow<TSharedPtr<FKeywordTableRow>>, OwnerTable)
         [
             SNew(SHorizontalBox)
+                
 
                 // Keyword column
                 + SHorizontalBox::Slot()

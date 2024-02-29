@@ -33,10 +33,11 @@ public:
 		FString DateTime;
 		FString Status;
 		FString JobID;
-		FString DownloadLink;
+		int32 BatchCount;
+		TArray<FString> DownloadLinks;
 
-		FQueueRow(FString InJob, FString InDateTime, FString InStatus, FString InJobID, FString InDownloadLink)
-			: Job(InJob), DateTime(InDateTime), Status(InStatus), JobID(InJobID), DownloadLink(InDownloadLink) {}
+		FQueueRow(FString InJob, FString InDateTime, FString InStatus, FString InJobID, int32 InBatchCount, TArray<FString> InDownloadLinks)
+			: Job(InJob), DateTime(InDateTime), Status(InStatus), JobID(InJobID), BatchCount(InBatchCount), DownloadLinks(InDownloadLinks) {}
 	};
 
 public:
@@ -54,16 +55,14 @@ private:
 	// Button callbacks
 	FReply ReturnButtonClicked();
 	FReply EmptyQButtonClicked();
-	FReply RefreshCachingButtonClicked();
 
 	// API methods
 	void SendSecondAPIRequest_JobResult(FString jobID);
 	void OnSecondAPIRequestJobResultCompleted(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful, FString jobID);
 
 	// Download and unzip methods
-	bool ExtractWith7Zip(const FString& ZipFile, const FString& DestinationDirectory);
-	void ZipProgressCallback();
-	void DownloadAndUnzipMethod(const FString& URL, const FString& DateTime, const FString& JobName);
+	bool ExtractZip(const FString& ZipFile, const FString& DestinationDirectory);
+	void DownloadAndUnzipMethod(const FString& URL, const FString& DateTime, const FString& JobName, int32 BatchCount);
 	void ImportFBX(const FString& DirectoryPath);
 
 	// Helper methods
