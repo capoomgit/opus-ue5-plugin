@@ -25,7 +25,6 @@ OPUS is a powerful tool that utilizes procedural modeling techniques to generate
 ![OPUS Plugin Button](/ReadmeAssets/UnrealPluginButton.png "OPUS plugin button")
 7. Now you will need a Rapid API key to log in. Create an account at: [RapidAPI](https://rapidapi.com/)
 8. Subscribe to OPUS API at: [OPUS API Subscribe](https://rapidapi.com/genel-gi78OM1rB/api/opus5/pricing)
-![Rapid API Subscription](/ReadmeAssets/RapidAPISubscribe.png "Rapid API Subscription")
 9. Get your Rapid API key at [OPUS API](https://rapidapi.com/genel-gi78OM1rB/api/opus5)
 ![Rapid API Key](/ReadmeAssets/RapidAPIKey.png "Rapid API Key")
 
