@@ -116,8 +116,22 @@ void SLoginScreen::Construct(const FArguments& InArgs)
                     SNew(SButton)
                     .ContentPadding(FMargin(10))
                     .Text(LOCTEXT("LoginButton", "Login"))
+                    .ButtonColorAndOpacity(FLinearColor(0.3, 1, 0.3, 1))
                     .OnClicked(this, &SLoginScreen::LoginButtonClicked)
                 ]
+            ]
+            + SScrollBox::Slot()
+            .VAlign(VAlign_Center)
+            .HAlign(HAlign_Center)
+            .Padding(0, 10, 0, 0)
+            [
+                SNew(SBox)
+                    [
+                        SNew(SButton)
+                            .ContentPadding(FMargin(10))
+                            .Text(LOCTEXT("Rapid API page", "Rapid API"))
+                            .OnClicked(this, &SLoginScreen::RapidAPIButtonClicked)
+                    ]
             ]
         ];
     }
@@ -142,6 +156,12 @@ FReply SLoginScreen::LoginButtonClicked()
     return FReply::Handled();
 }
 
+FReply SLoginScreen::RapidAPIButtonClicked()
+{
+    FPlatformProcess::LaunchURL(TEXT("https://rapidapi.com/genel-gi78OM1rB/api/opus5"), NULL, NULL);
+    return FReply::Handled();
+}
+
 void SLoginScreen::LogIn(FString key)
 {
     // Make API call with Username
@@ -157,24 +177,72 @@ void SLoginScreen::LogIn(FString key)
         {
             if (bWasSuccessful && Response.IsValid() && Response->GetResponseCode() == 200)
             {
-                AsyncTask(ENamedThreads::AnyBackgroundThreadNormalTask, [this, key]()
-                    {
-                        FPlatformProcess::Sleep(2);
+                TSharedPtr<FJsonObject> JsonObject;
+                TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Response->GetContentAsString());
 
-                        AsyncTask(ENamedThreads::GameThread, [this, key]()
+                if (FJsonSerializer::Deserialize(Reader, JsonObject) && JsonObject.IsValid())
+                {
+                    ModelOptions.Empty(); // Clear previous options
+
+                    /*
+                    // Parse Structures
+                    const TArray<TSharedPtr<FJsonValue>>* StructuresArray;
+                    if (JsonObject->TryGetArrayField("Structures", StructuresArray))
+                    {
+                        for (const auto& Value : *StructuresArray)
+                        {
+                            if (Value.IsValid() && Value->Type == EJson::String)
                             {
-                                SaveKeyToFile(key);
-                                NotificationHelper.ShowNotificationSuccess(LOCTEXT("ValidKeyNotification", "Logged in successfully!"));
-                                OnLoginSuccessfulDelegate.Broadcast(key);
-                                
-                            });
-                    });
+                                TSharedPtr<FString> structure = MakeShared<FString>(Value->AsString());
+                                ModelOptions.Add(structure);
+                            }
+                        }
+                    }
+                    */
+
+                    // Parse Components
+                    const TArray<TSharedPtr<FJsonValue>>* ComponentsArray;
+                    if (JsonObject->TryGetArrayField("Components", ComponentsArray))
+                    {
+                        for (const auto& Value : *ComponentsArray)
+                        {
+                            if (Value.IsValid() && Value->Type == EJson::String)
+                            {
+                                ModelOptions.Add(MakeShared<FString>(Value->AsString()));
+                            }
+                        }
+                    }
+
+                    AsyncTask(ENamedThreads::AnyBackgroundThreadNormalTask, [this, key]()
+                        {
+                            FPlatformProcess::Sleep(2);
+
+                            AsyncTask(ENamedThreads::GameThread, [this, key]()
+                                {
+                                    SaveKeyToFile(key);
+                                    NotificationHelper.ShowNotificationSuccess(LOCTEXT("ValidKeyNotification", "Logged in successfully!"));
+                                    //TODO dont send a new request, transfer model names to creation screen
+                                    OnLoginSuccessfulDelegate.Broadcast(key, ModelOptions);
+
+                                });
+                        });
+                }
+                else
+                {
+                    NotificationHelper.ShowNotificationFail(LOCTEXT("InvalidKeyNotification", "Key is not recognized!"));
+                    ShowLoginFailedWindow();
+                    RemoveKeyFile();
+                    RebuildWidget();
+                    UE_LOG(LogTemp, Error, TEXT("Failed to parse the JSON response."));
+                }
             }
             else
             {
                 NotificationHelper.ShowNotificationFail(LOCTEXT("InvalidKeyNotification", "Key is not recognized!"));
+                ShowLoginFailedWindow();
                 RemoveKeyFile();
                 RebuildWidget();
+                UE_LOG(LogTemp, Error, TEXT("API request was not successful. Response code: %d, Error: %s"), Response->GetResponseCode(), *Response->GetContentAsString());
             }
         });
 
@@ -222,6 +290,74 @@ void SLoginScreen::RemoveKeyFile()
     {
         IFileManager::Get().Delete(*SaveFilePath);
     }
+}
+
+FReply SLoginScreen::ShowLoginFailedWindow()
+{
+    TSharedPtr<SWindow> WarningWindowPtr; // Declare a shared pointer
+    TSharedRef<SWindow> WarningWindow = SNew(SWindow)
+        .Title(LOCTEXT("LoginFailed", "Login Failed"))
+        .ClientSize(FVector2D(600, 150))
+        .IsInitiallyMaximized(false);
+
+    WarningWindowPtr = WarningWindow; // Store the window in the shared pointer
+
+    FSlateApplication::Get().AddWindowAsNativeChild(WarningWindow, FSlateApplication::Get().GetActiveTopLevelWindow().ToSharedRef());
+
+    WarningWindow->SetContent(
+        SNew(SVerticalBox)
+
+        + SVerticalBox::Slot()
+        .AutoHeight()
+        .Padding(15)
+        [
+            SNew(STextBlock)
+                .Text(FText::FromString("The key you entered is incorrect! If this is a vadil Rapid API key,\n make sure you are subscribed to OPUS"))
+                .Justification(ETextJustify::Center)
+        ]
+
+        + SVerticalBox::Slot()
+        .AutoHeight()
+        .HAlign(HAlign_Center)
+        .Padding(15)
+        [
+            SNew(SHorizontalBox)
+
+            + SHorizontalBox::Slot()
+            .AutoWidth()
+            .Padding(15)
+            [
+                SNew(SButton)
+                .Text(LOCTEXT("RetryButton", "Retry"))
+                
+                .OnClicked_Lambda([this, WarningWindowPtr]()
+                    {
+                        if (WarningWindowPtr.IsValid())
+                        {
+                            WarningWindowPtr->RequestDestroyWindow();
+                        }
+                        return FReply::Handled();
+                    })
+            ]
+
+            + SHorizontalBox::Slot()
+            .AutoWidth()
+            .Padding(15)
+            [
+                SNew(SButton)
+                    .Text(LOCTEXT("SubscribeButton", "Subscribe"))
+                    .OnClicked_Lambda([this, WarningWindowPtr]()
+                        {
+                            if (WarningWindowPtr.IsValid())
+                            {
+                                FPlatformProcess::LaunchURL(TEXT("https://rapidapi.com/genel-gi78OM1rB/api/opus5/pricing"), NULL, NULL);
+                                WarningWindowPtr->RequestDestroyWindow();
+                            }
+                            return FReply::Handled();
+                        })
+            ]
+        ]);
+    return FReply::Handled();
 }
 
 void SLoginScreen::RebuildWidget()

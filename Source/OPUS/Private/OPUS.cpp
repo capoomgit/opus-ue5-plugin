@@ -99,19 +99,21 @@ void FOPUSModule::RegisterLoginScreen()
 	}
 }
 
-void FOPUSModule::RegisterCreationScreen()
+void FOPUSModule::RegisterCreationScreen(TArray<TSharedPtr<FString>> modelOptions)
 {
 	if (CreationScreen == nullptr) 
 	{
 		SAssignNew(CreationScreen, SCreationScreen)
 			.APIKey(CurrentAPIKey);
 
+		CreationScreen->SetModelOptions(modelOptions);
 		CreationScreen->OnLogoutDelegate.AddRaw(this, &FOPUSModule::OnLogout);
 		CreationScreen->OnQueueScreenEnabledDelegate.AddRaw(this, &FOPUSModule::OnQueueScreenEnabled);
 	}
 	else
 	{
 		CreationScreen->SetAPIKey(CurrentAPIKey);
+		CreationScreen->SetModelOptions(modelOptions);
 	}
 }
 
@@ -137,7 +139,7 @@ void FOPUSModule::CreatePluginWindow()
 	{
 		SAssignNew(MainWindow, SWindow)
 			.Title(LOCTEXT("WindowTitle", "OPUS API"))
-			.ClientSize(FVector2D(750, 700))
+			.ClientSize(FVector2D(780, 700))
 			.IsInitiallyMaximized(false);
 
 
@@ -208,10 +210,10 @@ void FOPUSModule::ShowQueueScreen()
 }
 
 // Delegate Events
-void FOPUSModule::OnLoginSuccessful(FString apiKey) 
+void FOPUSModule::OnLoginSuccessful(FString apiKey, TArray<TSharedPtr<FString>> modelOptions)
 {
 	CurrentAPIKey = apiKey;
-	RegisterCreationScreen();
+	RegisterCreationScreen(modelOptions);
 	ShowCreationScreen();
 }
 

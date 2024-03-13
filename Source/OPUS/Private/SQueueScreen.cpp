@@ -66,40 +66,40 @@ void SQueueScreen::Construct(const FArguments& InArgs)
             .Padding(0, 10, 0, 0)
             [
                 SNew(SBorder)
-                    .BorderImage(FCoreStyle::Get().GetBrush("Border"))
-                    .BorderBackgroundColor(FLinearColor::Gray)
-                    .Padding(FMargin(2))
+                .BorderImage(FCoreStyle::Get().GetBrush("Border"))
+                .BorderBackgroundColor(FLinearColor::Gray)
+                .Padding(FMargin(2))
+                [
+                    SNew(SScrollBox)
+
+                    + SScrollBox::Slot()
                     [
-                        SNew(SScrollBox)
+                        SNew(SBox)
+                        .WidthOverride(550)
+                        .HeightOverride(500)
+                        [
+                            SAssignNew(QueueListView, SListView<TSharedPtr<FQueueRow>>)
+                            .ItemHeight(24)
+                            .ListItemsSource(&QueueData)
+                            .OnGenerateRow(this, &SQueueScreen::OnGenerateRowForList)
+                            .HeaderRow
+                            (
+                                SNew(SHeaderRow)
+                                + SHeaderRow::Column("JobColumn")
+                                .DefaultLabel(LOCTEXT("JobColumnHeader", "Job"))
+                                .FillWidth(0.7f)
 
-                            + SScrollBox::Slot()
-                            [
-                                SNew(SBox)
-                                    .WidthOverride(550)
-                                    .HeightOverride(500)
-                                    [
-                                        SAssignNew(QueueListView, SListView<TSharedPtr<FQueueRow>>)
-                                            .ItemHeight(24)
-                                            .ListItemsSource(&QueueData)
-                                            .OnGenerateRow(this, &SQueueScreen::OnGenerateRowForList)
-                                            .HeaderRow
-                                            (
-                                                SNew(SHeaderRow)
-                                                + SHeaderRow::Column("JobColumn")
-                                                .DefaultLabel(LOCTEXT("JobColumnHeader", "Job"))
-                                                .FillWidth(0.7f)
+                                + SHeaderRow::Column("DateTimeColumn")
+                                .DefaultLabel(LOCTEXT("DateTimeColumnHeader", "Date Time"))
+                                .FillWidth(1.0f)
 
-                                                + SHeaderRow::Column("DateTimeColumn")
-                                                .DefaultLabel(LOCTEXT("DateTimeColumnHeader", "Date Time"))
-                                                .FillWidth(1.0f)
-
-                                                + SHeaderRow::Column("StatusColumn")
-                                                .DefaultLabel(LOCTEXT("StatusColumnHeader", "Status"))
-                                                .FillWidth(1.2f)
-                                            )
-                                    ]
-                            ]
+                                + SHeaderRow::Column("StatusColumn")
+                                .DefaultLabel(LOCTEXT("StatusColumnHeader", "Status"))
+                                .FillWidth(1.2f)
+                            )
+                        ]
                     ]
+                ]
             ]
 	];
 }
@@ -113,10 +113,16 @@ void SQueueScreen::QueueLoop()
 {
     if (QueueData.Num() > 0)
     {
-        // Access the JobID of the current FQueueRow object
-        FString currentJobID = QueueData[CurrentQueueIndex]->JobID;
 
-        SendSecondAPIRequest_JobResult(currentJobID);
+        // Access the JobID of the current FQueueRow object
+        TSharedPtr<FQueueRow> CurrentJob = QueueData[CurrentQueueIndex];
+        FString currentJobID = CurrentJob->JobID;
+        FString currentJobStatus = CurrentJob->Status;
+
+        if (currentJobStatus.Equals("PENDING") || currentJobStatus.Equals("IN_PROGRESS")) 
+        {
+            SendSecondAPIRequest_JobResult(currentJobID);
+        }
 
         AsyncTask(ENamedThreads::AnyBackgroundThreadNormalTask, [this]()
             {
@@ -243,8 +249,8 @@ TSharedRef<ITableRow> SQueueScreen::OnGenerateRowForList(TSharedPtr<FQueueRow> I
     {
         TextColor = FLinearColor::White; // Default color
     }
-    int32 CurrentIndex = QueueData.Find(InItem); // Find the index of the current item in QueueData
-
+    int32 CurrentIndex = QueueData.Find(InItem);
+    
     return SNew(STableRow<TSharedPtr<FQueueRow>>, OwnerTable)
         [
             SNew(SHorizontalBox)
@@ -306,13 +312,8 @@ TSharedRef<ITableRow> SQueueScreen::OnGenerateRowForList(TSharedPtr<FQueueRow> I
                     SNew(SButton)
                     .Text(FText::FromString(TEXT("×")))
                     .OnClicked_Lambda([this, CurrentIndex]() 
-                        {
-                            // Remove the item from QueueData
-                            if (CurrentIndex >= 0 && CurrentIndex < QueueData.Num()) {
-                                QueueData.RemoveAt(CurrentIndex);
-                                WriteQueueToFile();
-                                QueueListView->RequestListRefresh();
-                            }
+                        { 
+                            ShowRemoveWarningWindow(CurrentIndex);
                             return FReply::Handled();
                         })
                 ]
@@ -341,6 +342,73 @@ void SQueueScreen::WriteQueueToFile()
 
     // Write to file
     FFileHelper::SaveStringToFile(fileContent, *AbsolutePath);
+}
+
+FReply SQueueScreen::ShowRemoveWarningWindow(int32 QueueItemIndex)
+{
+    TSharedPtr<SWindow> WarningWindowPtr; // Declare a shared pointer
+    TSharedRef<SWindow> WarningWindow = SNew(SWindow)
+        .Title(LOCTEXT("WarningTitle", "Warning"))
+        .ClientSize(FVector2D(600, 150))
+        .IsInitiallyMaximized(false);
+
+    WarningWindowPtr = WarningWindow; // Store the window in the shared pointer
+
+    FSlateApplication::Get().AddWindowAsNativeChild(WarningWindow, FSlateApplication::Get().GetActiveTopLevelWindow().ToSharedRef());
+
+    WarningWindow->SetContent(
+        SNew(SVerticalBox)
+
+        + SVerticalBox::Slot()
+        .AutoHeight()
+        .Padding(15)
+        [
+            SNew(STextBlock)
+                .Text(FText::FromString("Are you sure you want to remove " + QueueData[QueueItemIndex]->Job))
+                .Justification(ETextJustify::Center)
+        ]
+
+        + SVerticalBox::Slot()
+        .AutoHeight()
+        .HAlign(HAlign_Center)
+        .Padding(15)
+        [
+            SNew(SHorizontalBox)
+
+            + SHorizontalBox::Slot()
+            .AutoWidth()
+            [
+                SNew(SButton)
+                .Text(LOCTEXT("OKButton", "Yes"))
+                .OnClicked_Lambda([this, WarningWindowPtr, QueueItemIndex]()
+                    {
+                        if (WarningWindowPtr.IsValid())
+                        {
+                            QueueData.RemoveAt(QueueItemIndex);
+                            WriteQueueToFile();
+                            QueueListView->RequestListRefresh();
+                            WarningWindowPtr->RequestDestroyWindow();
+                        }
+                        return FReply::Handled();
+                    })
+            ]
+
+            + SHorizontalBox::Slot()
+            .AutoWidth()
+            [
+                SNew(SButton)
+                    .Text(LOCTEXT("OKButton", "No"))
+                    .OnClicked_Lambda([this, WarningWindowPtr]()
+                        {
+                            if (WarningWindowPtr.IsValid())
+                            {
+                                WarningWindowPtr->RequestDestroyWindow();
+                            }
+                            return FReply::Handled();
+                        })
+            ]
+        ]);
+    return FReply::Handled();
 }
 
 // ------------------------------

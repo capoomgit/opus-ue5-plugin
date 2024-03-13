@@ -25,6 +25,7 @@ public:
 	/** Constructs this widget with InArgs */
 	void Construct(const FArguments& InArgs);
 	void SetAPIKey(FString apiKey);
+	void SetModelOptions(TArray<TSharedPtr<FString>> newModelOptions);
 
 	// Delegate 
 	FOnQueueScreenEnabled OnQueueScreenEnabledDelegate;
@@ -39,9 +40,6 @@ private:
 	FReply CreateButtonClicked();
 	FReply ResetFeaturesButtonClicked();
 	FReply QueueButtonClicked();
-	FReply ReturnButtonClicked();
-	FReply RefreshCachingButtonClicked();
-	FReply EmptyQButtonClicked();
 
 // ------------------------------
 // --- API REQUEST METHODS
@@ -52,7 +50,6 @@ private:
 	void SendAPIRequest_AttributeName();
 	void OnAPIRequestAttributeNameCompleted(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
 	void SendAPIRequest_ModelNames();
-	void OnAPIRequestModelNamesCompleted(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
 
 // ------------------------------
 // --- COMBOBOX METHODS ---------
@@ -76,7 +73,6 @@ private:
 	void OnTagSelected(TSharedPtr<FString> SelectedTag);
 	void OnTemplateSelected(TSharedPtr<FString> SelectedTemplate);
 	void OnParameterSelected(TSharedPtr<FString> ParameterSelection);
-	void OnTextCommittedInParameterInput(const FText& Text, ETextCommit::Type CommitMethod);
 
 // ------------------------------
 // --- HELPER METHODS -----------
@@ -88,14 +84,16 @@ private:
 	FReply ShowWarningWindow(FString WarningMessage);
 	FReply ShowResetCustomizationWarning();
 	FReply ShowConnectionErrorWarning();
-	EVisibility GetParamInputBoxVisibility() const;
 	FText GetParamHintText(FVector2D ParameterRange) const;
 	FText GetCurrentModel() const;
 	FText GetCurrentFileType() const;
 	FText GetCurrentTextureSize() const;
 	bool TagExistsInFilteredList(TSharedPtr<FString> TagString);
+
 	TOptional<int32> GetBatchCount() const;
-	void OnBatchCountChanged(int NewValue);
+	void OnBatchCountChanged(int32 NewValue);
+	TOptional<int32> GetSeed() const;
+	void OnSeedChanged(int32 NewValue);
 
 private:
 	FString APIKey;
@@ -116,7 +114,6 @@ private:
 	TSharedPtr<FString> CurrentModel;
 	TArray<TSharedPtr<FString>> ModelOptions;
 	TSharedPtr<SComboBox<TSharedPtr<FString>>> ModelComboBox;
-	TArray<TSharedPtr<FString>> Structures;
 
 	// File Type Box
 	TSharedPtr<SComboBox<TSharedPtr<FString>>> FileTypeComboBox;
@@ -130,7 +127,10 @@ private:
 
 	// Batch generation count
 	int32 BatchCount = 1;
-	int32 MaxBatchCount = 100;
+	int32 MaxBatchCount = 5;
+
+	// Randomization seed
+	int32 Seed = -1; 
 
 	// TABLE RELATED
 	TSharedPtr<SCustomizationTable> CustomizationTable;

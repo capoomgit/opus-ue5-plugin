@@ -49,11 +49,11 @@ private:
 
 	// Register Screens
 	void RegisterLoginScreen();
-	void RegisterCreationScreen();
+	void RegisterCreationScreen(TArray<TSharedPtr<FString>> modelOptions);
 	void RegisterQueueScreen();
 
 	//Delegate Events
-	void OnLoginSuccessful(FString apiKey);
+	void OnLoginSuccessful(FString apiKey, TArray<TSharedPtr<FString>> modelOptions);
 	void OnLogout();
 	void OnCreationScreenEnabled();
 	void OnQueueScreenEnabled();

@@ -112,7 +112,6 @@ void SCreationScreen::Construct(const FArguments& InArgs)
                     ]
 
                     + SHorizontalBox::Slot()
-                    .AutoWidth()
                     .Padding(30, 0, 0, 0)
                     [
 
@@ -122,7 +121,7 @@ void SCreationScreen::Construct(const FArguments& InArgs)
                         .AutoHeight()
                         [
                             SNew(STextBlock)
-                            .Text(LOCTEXT("File Type", "File type"))
+                            .Text(LOCTEXT("File Type", "File Type"))
                         ]
 
                         + SVerticalBox::Slot()
@@ -144,7 +143,7 @@ void SCreationScreen::Construct(const FArguments& InArgs)
                         .Padding(0, 5, 0, 0)
                         [
                             SNew(STextBlock)
-                            .Text(LOCTEXT("Texture Size", "Texture size"))
+                            .Text(LOCTEXT("Texture Size", "Texture Size"))
                         ]
 
                         + SVerticalBox::Slot()
@@ -166,24 +165,45 @@ void SCreationScreen::Construct(const FArguments& InArgs)
                         .Padding(0, 5, 0, 0)
                         [
                             SNew(STextBlock)
-                                .Text(LOCTEXT("Batch generation count", "Batch count"))
+                                .Text(LOCTEXT("Random seed", "Random Seed"))
                         ]
 
                         + SVerticalBox::Slot()
                         .AutoHeight()
                         [
+                            /*
                             SNew(SNumericEntryBox<int32>)
                             .Value(this, &SCreationScreen::GetBatchCount)
                             .OnValueChanged(this, &SCreationScreen::OnBatchCountChanged)
                             .Delta(1)
+                            */
+                            
+                            SNew(SNumericEntryBox<int32>)
+                            .Value(this, &SCreationScreen::GetSeed)
+                            .OnValueChanged(this, &SCreationScreen::OnSeedChanged)
+                            .Delta(1)
                         ]
+
+                        + SVerticalBox::Slot()
+                        .AutoHeight()
+                        .Padding(0, 5, 0, 0)
+                        [
+                            SNew(SButton)
+                            .Text(LOCTEXT("Randomize", "Randomize"))
+                            
+                            .OnClicked_Lambda([this]()
+                                {
+                                    Seed = FMath::RandRange(-999999999, 999999999);
+                                    return FReply::Handled();
+                                })
+                        ]                       
                     ]
                     + SHorizontalBox::Slot()
                     .AutoWidth()
-                    .Padding(300, 0, 0, 0)
+                    .Padding(260, 0, 0, 0)
                     [
                         SNew(SBox)
-                        .WidthOverride(160)
+                        .WidthOverride(190)
                         .HeightOverride(100)
                         [
                             SNew(SImage)
@@ -301,16 +321,6 @@ void SCreationScreen::Construct(const FArguments& InArgs)
             ]
         ]
     ];
-
-    AsyncTask(ENamedThreads::AnyBackgroundThreadNormalTask, [this]()
-        {
-            FPlatformProcess::Sleep(1);
-
-            AsyncTask(ENamedThreads::GameThread, [this]()
-                {
-                    SendAPIRequest_ModelNames();
-                });
-        });
 	
     TagSearchBox->OnSuggestionSelected.AddRaw(this, &SCreationScreen::OnTagSelected);
     TemplateSearchBox->OnSuggestionSelected.AddRaw(this, &SCreationScreen::OnTemplateSelected);
@@ -358,12 +368,22 @@ TOptional<int32> SCreationScreen::GetBatchCount() const
     return BatchCount;
 }
 
-void SCreationScreen::OnBatchCountChanged(int NewValue)
+TOptional<int32> SCreationScreen::GetSeed() const
+{
+    return Seed;
+}
+
+void SCreationScreen::OnBatchCountChanged(int32 NewValue)
 {
     if (NewValue > 0 && NewValue <= MaxBatchCount) BatchCount = NewValue;
     else if (NewValue <= 0) BatchCount = 1;
     else if (NewValue > MaxBatchCount) BatchCount = MaxBatchCount;
-}   
+}  
+
+void SCreationScreen::OnSeedChanged(int32 NewValue)
+{
+    Seed = NewValue;
+}
 
 // ------------------------------
 // --- COMBO BOX METHODS
@@ -621,6 +641,28 @@ void SCreationScreen::OnParameterSelected(TSharedPtr<FString> ParameterSelection
 // ------------------------------
 
 void SCreationScreen::SetAPIKey(FString apiKey) { APIKey = apiKey; }
+void SCreationScreen::SetModelOptions(TArray<TSharedPtr<FString>> newModelOptions)
+{
+    ModelOptions = newModelOptions;
+
+    // Update the ComboBox
+    if (ModelComboBox.IsValid())
+    {
+        ModelComboBox->RefreshOptions();
+    }
+
+    // Set the initial selected item
+    if (ModelOptions.Num() > 0)
+    {
+        CurrentModel = ModelOptions[0];
+        ModelComboBox->SetSelectedItem(CurrentModel);
+        AsyncTask(ENamedThreads::AnyBackgroundThreadNormalTask, [this]()
+            {
+                FPlatformProcess::Sleep(3);
+                SendAPIRequest_AttributeName();
+            });
+    }
+}
 
 int SCreationScreen::CompareStrings(FString Str1, FString Str2)
 {
@@ -811,7 +853,7 @@ FString SCreationScreen::ConstructCreateRequestBody()
     // Start constructing the JSON data
     FString JsonData = "{\r\n";
     JsonData += "    \"name\": \"" + *CurrentModel + "\",\r\n";
-    JsonData += "    \"count\": \"" + FString::FromInt(BatchCount) + "\",\r\n";
+    //JsonData += "    \"count\": \"" + FString::FromInt(BatchCount) + "\",\r\n";
     JsonData += "    \"texture_resolution\": \"" + *CurrentTextureSize + "\",\r\n";
     JsonData += "    \"extensions\": [\r\n        \"" + *CurrentFileType + "\"\r\n    ],\r\n";
 
@@ -858,7 +900,8 @@ FString SCreationScreen::ConstructCreateRequestBody()
         JsonData += "]";
     }
 
-    JsonData += "\r\n    }\r\n";
+    JsonData += "\r\n    },\r\n";
+    JsonData += "    \"seed\": " + FString::FromInt(Seed) + "\r\n";
     JsonData += "}";
     return JsonData;
 }
@@ -890,21 +933,7 @@ void SCreationScreen::SendAPIRequest_Create()
 {
     // Disable create button
     CreateButton->SetEnabled(false);
-    FString Url = URLHelper::CreateBatchComponent;
-    // When you want to create more objects using create batch
-    //FString Parameters = "?count=" + FString::FromInt(BatchCount);
-    //Url += Parameters;
-
-    for (const auto& structure : Structures)
-    {
-        if (structure->Equals(*CurrentModel))
-        {
-            // Change the URL for structures
-            Url = URLHelper::CreateStructure;
-            break;
-        }
-    }
-
+    FString Url = URLHelper::CreateComponent;
     FString JsonData = ConstructCreateRequestBody();
 
     TSharedRef<IHttpRequest, ESPMode::ThreadSafe> HttpRequest = FHttpModule::Get().CreateRequest();
@@ -1100,6 +1129,7 @@ void SCreationScreen::OnAPIRequestAttributeNameCompleted(FHttpRequestPtr Request
                                         TagFilteredSuggestions.Add(TagDisplayString);
                                     }
 
+                                    /* Uncomment this to add All (*) tags
                                     // Add star component tag to pick this tag for every component
                                     if (!bStarComponentForTagExists && bSameTagExists)
                                     {
@@ -1112,6 +1142,7 @@ void SCreationScreen::OnAPIRequestAttributeNameCompleted(FHttpRequestPtr Request
                                         TSharedPtr<FString> StarTagDisplayString = MakeShared<FString>(StarAssetTag.ComponentName + " - " + StarAssetTag.Tag);
                                         TagFilteredSuggestions.Add(StarTagDisplayString);
                                     }
+                                    */
                                 }
                             }
 
@@ -1149,6 +1180,7 @@ void SCreationScreen::OnAPIRequestAttributeNameCompleted(FHttpRequestPtr Request
                                         TemplateFilteredSuggestions.Add(TemplateDisplayString);
                                     }
 
+                                    /* Uncomment this to add All (*) templates
                                     // Add star component template to pick this template for every component
                                     if (!bStarComponentForTemplateExists && bSameTemplateExists) 
                                     {
@@ -1161,6 +1193,7 @@ void SCreationScreen::OnAPIRequestAttributeNameCompleted(FHttpRequestPtr Request
                                         TSharedPtr<FString> StarTemplateDisplayString = MakeShared<FString>(StarAssetTemplate.ComponentName + " - " + StarAssetTemplate.TemplateName);
                                         TemplateFilteredSuggestions.Add(StarTemplateDisplayString);
                                     }
+                                    */
                                 }
                             }
 
@@ -1230,74 +1263,58 @@ void SCreationScreen::SendAPIRequest_ModelNames()
     HttpRequest->SetHeader("X-RapidAPI-Key", APIKey);
     HttpRequest->SetHeader("X-RapidAPI-Host", "opus5.p.rapidapi.com");
     HttpRequest->SetContentAsString(JsonData);
-    HttpRequest->OnProcessRequestComplete().BindRaw(this, &SCreationScreen::OnAPIRequestModelNamesCompleted);
+    HttpRequest->OnProcessRequestComplete().BindLambda([this](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
+        {
+            if (bWasSuccessful && Response.IsValid() && Response->GetResponseCode() == 200)
+            {
+                TSharedPtr<FJsonObject> JsonObject;
+                TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Response->GetContentAsString());
+
+                if (FJsonSerializer::Deserialize(Reader, JsonObject) && JsonObject.IsValid())
+                {
+                    ModelOptions.Empty(); // Clear previous options
+
+                    /*
+                    // Parse Structures
+                    const TArray<TSharedPtr<FJsonValue>>* StructuresArray;
+                    if (JsonObject->TryGetArrayField("Structures", StructuresArray))
+                    {
+                        for (const auto& Value : *StructuresArray)
+                        {
+                            if (Value.IsValid() && Value->Type == EJson::String)
+                            {
+                                TSharedPtr<FString> structure = MakeShared<FString>(Value->AsString());
+                                ModelOptions.Add(structure);
+                            }
+                        }
+                    }
+                    */
+
+                    // Parse Components
+                    const TArray<TSharedPtr<FJsonValue>>* ComponentsArray;
+                    if (JsonObject->TryGetArrayField("Components", ComponentsArray))
+                    {
+                        for (const auto& Value : *ComponentsArray)
+                        {
+                            if (Value.IsValid() && Value->Type == EJson::String)
+                            {
+                                ModelOptions.Add(MakeShared<FString>(Value->AsString()));
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    UE_LOG(LogTemp, Error, TEXT("Failed to parse the JSON response."));
+                }
+            }
+            else
+            {
+                UE_LOG(LogTemp, Error, TEXT("API request was not successful. Response code: %d, Error: %s"), Response->GetResponseCode(), *Response->GetContentAsString());
+            }
+        });
     HttpRequest->ProcessRequest();
     UE_LOG(LogTemp, Log, TEXT("Sending request to URL: %s"), *(Url));
-}
-
-void SCreationScreen::OnAPIRequestModelNamesCompleted(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
-{
-    if (bWasSuccessful && Response->GetResponseCode() == 200)
-    {
-        TSharedPtr<FJsonObject> JsonObject;
-        TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Response->GetContentAsString());
-
-        if (FJsonSerializer::Deserialize(Reader, JsonObject) && JsonObject.IsValid())
-        {
-            ModelOptions.Empty(); // Clear previous options
-            Structures.Empty();     // Clear previous structures
-
-            // Parse Structures
-            const TArray<TSharedPtr<FJsonValue>>* StructuresArray;
-            if (JsonObject->TryGetArrayField("Structures", StructuresArray))
-            {
-                for (const auto& Value : *StructuresArray)
-                {
-                    if (Value.IsValid() && Value->Type == EJson::String)
-                    {
-                        TSharedPtr<FString> structure = MakeShared<FString>(Value->AsString());
-                        ModelOptions.Add(structure);
-                        Structures.Add(structure); // Add to the Structures array
-                    }
-                }
-            }
-
-            // Parse Components
-            const TArray<TSharedPtr<FJsonValue>>* ComponentsArray;
-            if (JsonObject->TryGetArrayField("Components", ComponentsArray))
-            {
-                for (const auto& Value : *ComponentsArray)
-                {
-                    if (Value.IsValid() && Value->Type == EJson::String)
-                    {
-                        ModelOptions.Add(MakeShared<FString>(Value->AsString()));
-                    }
-                }
-            }
-
-            // Update the ComboBox
-            if (ModelComboBox.IsValid())
-            {
-                ModelComboBox->RefreshOptions();
-            }
-
-            // Set the initial selected item
-            if (ModelOptions.Num() > 0)
-            {
-                CurrentModel = ModelOptions[0];
-                ModelComboBox->SetSelectedItem(CurrentModel);
-            }
-        }
-        else
-        {
-            UE_LOG(LogTemp, Error, TEXT("Failed to parse the JSON response."));
-        }
-    }
-    else
-    {
-        ShowConnectionErrorWarning();
-        UE_LOG(LogTemp, Error, TEXT("API request was not successful. Response code: %d, Error: %s"), Response->GetResponseCode(), *Response->GetContentAsString());
-    }
 }
 
 FReply SCreationScreen::ShowConnectionErrorWarning()
@@ -1343,7 +1360,7 @@ FReply SCreationScreen::ShowConnectionErrorWarning()
                                     WarningWindowPtr->RequestDestroyWindow();
                                     
                                 }
-                                SendAPIRequest_ModelNames();
+                                SendAPIRequest_AttributeName();
                                 return FReply::Handled();
                             })
                 ]

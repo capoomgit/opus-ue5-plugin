@@ -6,7 +6,7 @@
 #include "Widgets/SCompoundWidget.h"
 #include "EditorNotificationHelper.h"
 
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnLoginSuccessful, FString);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnLoginSuccessful, FString, TArray<TSharedPtr<FString>>);
 
 class OPUS_API SLoginScreen : public SCompoundWidget
 {
@@ -30,9 +30,12 @@ private:
 	void SaveKeyToFile(FString key);
 	void RemoveKeyFile();
 	bool CheckStoredAPIKey();
+	FReply RapidAPIButtonClicked();
+	FReply ShowLoginFailedWindow();
 
 private:
 	TSharedPtr<SEditableText> KeyField;
+	TArray<TSharedPtr<FString>> ModelOptions;
 	FString StoredAPIKey;
 	EditorNotificationHelper NotificationHelper;
 

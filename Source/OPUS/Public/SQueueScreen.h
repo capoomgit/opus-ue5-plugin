@@ -68,6 +68,7 @@ private:
 	// Helper methods
 	void SetUpFileTypes();
 	bool LoadUnzipDLL();
+	FReply ShowRemoveWarningWindow(int32 QueueItemIndex);
 
 private:
 	TSharedPtr<SListView<TSharedPtr<FQueueRow>>> QueueListView;
