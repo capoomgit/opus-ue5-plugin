@@ -123,7 +123,7 @@ void SLoginScreen::Construct(const FArguments& InArgs)
             + SScrollBox::Slot()
             .VAlign(VAlign_Center)
             .HAlign(HAlign_Center)
-            .Padding(0, 10, 0, 0)
+            .Padding(0, 40, 0, 0)
             [
                 SNew(SBox)
                     [

@@ -113,6 +113,7 @@ void SCreationScreen::Construct(const FArguments& InArgs)
 
                     + SHorizontalBox::Slot()
                     .Padding(30, 0, 0, 0)
+                    .MaxWidth(95)
                     [
 
                         SNew(SVerticalBox)
@@ -169,7 +170,7 @@ void SCreationScreen::Construct(const FArguments& InArgs)
                         ]
 
                         + SVerticalBox::Slot()
-                        .AutoHeight()
+                        
                         [
                             /*
                             SNew(SNumericEntryBox<int32>)
@@ -193,7 +194,7 @@ void SCreationScreen::Construct(const FArguments& InArgs)
                             
                             .OnClicked_Lambda([this]()
                                 {
-                                    Seed = FMath::RandRange(-999999999, 999999999);
+                                    Seed = FMath::RandRange(0, 999999999);
                                     return FReply::Handled();
                                 })
                         ]                       
@@ -287,7 +288,7 @@ void SCreationScreen::Construct(const FArguments& InArgs)
                     .Padding(30, 0, 0, 0)
                     [
                         SNew(SBox)
-                        .WidthOverride(155)  // Adjusted button width
+                        .WidthOverride(160)  // Adjusted button width
                         .HeightOverride(50)  // Adjusted button height
                         [
                             SNew(SButton)
@@ -306,7 +307,7 @@ void SCreationScreen::Construct(const FArguments& InArgs)
                     .Padding(30, 0, 30, 0)
                     [
                         SNew(SBox)
-                        .WidthOverride(130)
+                        .WidthOverride(160)
                         .HeightOverride(50)
                         [
                             SAssignNew(CreateButton, SButton)
@@ -382,7 +383,12 @@ void SCreationScreen::OnBatchCountChanged(int32 NewValue)
 
 void SCreationScreen::OnSeedChanged(int32 NewValue)
 {
-    Seed = NewValue;
+    int32 maxSeed = 999999999;
+    int32 minSeed = -1;
+
+    if (NewValue >= minSeed && NewValue <= maxSeed) Seed = NewValue;
+    else if (NewValue < minSeed) Seed = minSeed;
+    else if (NewValue > maxSeed) Seed = maxSeed;
 }
 
 // ------------------------------
