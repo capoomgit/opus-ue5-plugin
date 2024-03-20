@@ -534,6 +534,15 @@ void SQueueScreen::DownloadAndUnzipMethod(const FString& URL, const FString& Dat
 bool SQueueScreen::LoadUnzipDLL()
 {
     FString DLLPath = FPaths::Combine(FPaths::ProjectPluginsDir(), "OPUS/Source/UnzipDLL/unzip_library.dll");
+    // If dll not in project, check engine plugins
+    if (!FPaths::FileExists(DLLPath))
+    {
+        DLLPath = FPaths::Combine(FPaths::EnginePluginsDir(), "Marketplace/OPUS/Source/UnzipDLL/unzip_library.dll");
+    }
+    if (!FPaths::FileExists(DLLPath))
+    {
+        DLLPath = FPaths::Combine(FPaths::EnginePluginsDir(), "OPUS/Source/UnzipDLL/unzip_library.dll");
+    }
 
     UnzipDLLHandle = FPlatformProcess::GetDllHandle(*DLLPath); // Retrieve the DLL.
     if (UnzipDLLHandle != NULL)
@@ -546,7 +555,7 @@ bool SQueueScreen::LoadUnzipDLL()
             return true;
         }
     }
-    UE_LOG(LogTemp, Error, TEXT("Failed unzip DLL load"))
+    UE_LOG(LogTemp, Error, TEXT("Failed to load unzip_library.dll. This should be in the Source folder of this plugin"))
     return false;
 }
 
